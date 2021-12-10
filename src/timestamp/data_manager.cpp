@@ -2,10 +2,15 @@
 
 namespace ndsec::data {
 
+class DataManagerImpl : public DataManager{
+public:
+
+};
+
 
 std::unique_ptr<DataManager> DataManager::make() {
 
-  return std::make_unique<DataManager>();
+  return std::make_unique<DataManagerImpl>();
 }
 
 

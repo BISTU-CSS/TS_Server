@@ -6,6 +6,9 @@ namespace ndsec::data {
 
 class DataManager {
 public:
+  // 数据结构
+
+
   virtual ~DataManager() = default;
 
   /**
