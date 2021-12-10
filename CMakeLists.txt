@@ -13,7 +13,8 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
 message(STATUS "Current cxx_flags: ${CMAKE_CXX_FLAGS}")
 
 # include dependencies
-include(${PROJECT_SOURCE_DIR}/mod_station/wingman/grpc.cmake)
+#include(${PROJECT_SOURCE_DIR}/mod_station/wingman/grpc.cmake)
+#include(${})
 
 # install git hooks
 #include(${PROJECT_SOURCE_DIR}/ndsec_helper/githooks/apply_git_hooks.cmake)
@@ -25,7 +26,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC ${PROJECT_BINARY_DIR})
 target_include_directories(${PROJECT_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include)
 target_include_directories(${PROJECT_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/src)
 
-target_link_libraries(${PROJECT_NAME} PUBLIC grpc_core)
+target_link_libraries(${PROJECT_NAME} PUBLIC )
 
 add_subdirectory(sample)
 
