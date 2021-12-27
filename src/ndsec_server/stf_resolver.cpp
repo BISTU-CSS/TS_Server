@@ -13,7 +13,7 @@ class RpcServer {};
 class Resolver {
 
 private:
-  std::unique_ptr<time::TimestampServer> time_server_;
+  std::unique_ptr<TimestampServer> time_server_;
 };
 
 } // namespace ndsec::stf

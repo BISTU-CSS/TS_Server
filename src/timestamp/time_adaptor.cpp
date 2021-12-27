@@ -2,11 +2,10 @@
 
 #include <fmt/core.h>
 
-namespace ndsec::time {
+namespace ndsec::timetool {
 
 class TimeAdaptorImpl : public TimeAdaptor {
 public:
-  UTC_TIME unix_to_utc(const time_t &unix_time) override {
 #define SECOND 1UL
 #define MINU_SECONDS (60 * SECOND)
 #define HOUR_SECONDS (60 * MINU_SECONDS)
@@ -23,6 +22,11 @@ public:
 #define EVERY_4YEARS_DAYS (NONLEAP_YEAR_DAYS * 3 + LEAP_YEAR_DAYS)
 #define ARRAY_SIZE(array) (sizeof(array) / sizeof((array)[0]))
 
+  UTC_TIME unix32_to_UTC_beijing(const time_t &unix_time) override {
+    return unix_to_utc(unix_time + UTC_BEIJING_OFFSET_SECONDS);
+  }
+
+  UTC_TIME unix_to_utc(const time_t &unix_time) override {
     unsigned char days_per_month[12] = {
         /*1   2   3   4   5   6   7   8   9   10  11  12*/
         31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
@@ -80,16 +84,6 @@ public:
     return utc;
   }
 
-private:
-  static bool get_is_leap_year(unsigned short year) {
-    if (((year % 4) == 0) && ((year % 100) != 0)) {
-      return true;
-    } else if ((year % 400) == 0) {
-      return true;
-    }
-    return false;
-  }
-
   std::string utc_format(const UTC_TIME &utc_time) override {
     if (utc_time.is_fractions_second) {
       return fmt::format("{:04}{:02}{:02}{:02}{:02}{:02}.{}Z", utc_time.year,
@@ -102,10 +96,20 @@ private:
                          utc_time.minute, utc_time.second);
     }
   }
+
+private:
+  static bool get_is_leap_year(unsigned short year) {
+    if (((year % 4) == 0) && ((year % 100) != 0)) {
+      return true;
+    } else if ((year % 400) == 0) {
+      return true;
+    }
+    return false;
+  }
 };
 
 std::unique_ptr<TimeAdaptor> TimeAdaptor::make() {
   return std::make_unique<TimeAdaptorImpl>();
 };
 
-} // namespace ndsec::time
+} // namespace ndsec::timetool

@@ -3,7 +3,7 @@
 #include <memory>
 #include <string>
 
-namespace ndsec::time {
+namespace ndsec::timetool {
 
 /**
  * @brief 统一在机器内的时间传输形式
@@ -24,7 +24,6 @@ class TimeAdaptor {
 public:
   virtual ~TimeAdaptor() = default;
 
-  // enum class TimeType{ISO8061,UTC,};
   /**
    * @brief 将unix标准时间转换为utc时间
    * @param unix_time linux自带的时间
@@ -33,8 +32,14 @@ public:
   virtual UTC_TIME unix_to_utc(const time_t &unix_time) = 0;
 
   /**
+   * @brief 将unix标准时间转换为北京时间UTC+8
+   * @param unix_time[in] UTC结构体
+   * @return
+   */
+  virtual UTC_TIME unix32_to_UTC_beijing(const time_t &unix_time) = 0;
+  /**
    * @brief 将UTC结构体转换为UTC标准的格式,即YYYYMMDDhhmmss[.s..]Z
-   * @param utc_time[in] 系统内的UTC结构体
+   * @param utc_time[in] UTC结构体
    * @return
    */
   virtual std::string utc_format(const UTC_TIME &utc_time) = 0;
@@ -56,4 +61,4 @@ public:
   static std::unique_ptr<TimeAdaptor> make();
 };
 
-} // namespace ndsec::time
+} // namespace ndsec::timetool
