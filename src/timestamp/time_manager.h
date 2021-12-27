@@ -1,5 +1,5 @@
 #pragma once
 
-#include "time_adaport.h"
+#include "time_adaptor.h"
 
 namespace ndsec::time {}
