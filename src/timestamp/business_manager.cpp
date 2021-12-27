@@ -2,13 +2,12 @@
 
 namespace ndsec::business {
 
-class BusinessManagerImpl : public BusinessManager{
+class BusinessManagerImpl : public BusinessManager {
 public:
-
 };
 
 std::unique_ptr<BusinessManager> BusinessManager::make() {
   return std::make_unique<BusinessManagerImpl>();
 }
 
-}
+} // namespace ndsec::business

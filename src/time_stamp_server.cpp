@@ -6,22 +6,17 @@
 
 namespace ndsec::time {
 
-class TimestampServerImpl : public TimestampServer{
+class TimestampServerImpl : public TimestampServer {
 public:
-
-  bool get_time(){
-    return 0;
-  }
+  bool get_time() { return 0; }
 
 private:
-  bool check_database_timestamp(){
-    return 0;
-  }
+  bool check_database_timestamp() { return 0; }
 
-  bool get_time_ctx(){
-    return 0;
-  }
+  bool get_time_ctx() { return 0; }
 
+private:
+  std::unique_ptr<ndsec::time::TimeAdaptor> time_adaptor_;
 };
 
 std::unique_ptr<TimestampServer> TimestampServer::make() {

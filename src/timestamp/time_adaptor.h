@@ -8,36 +8,36 @@ namespace ndsec::time {
 /**
  * @brief 统一在机器内的时间传输形式
  */
-struct UTC_TIME{
+struct UTC_TIME {
 public:
-  uint16_t year : 12,      // max 4095
-           month : 4;      // max 15
+  uint16_t year : 12, // max 4095
+      month : 4;      // max 15
   uint8_t day;        // max 31
   uint8_t hour;
   uint8_t minute;
   uint8_t second;
   bool is_fractions_second;
-  uint64_t fractions_second;    //fractions of seconds
-}__attribute__((packed));
+  uint64_t fractions_second; // fractions of seconds
+} __attribute__((packed));
 
-class TimeAdaptor{
+class TimeAdaptor {
 public:
   virtual ~TimeAdaptor() = default;
 
-  //enum class TimeType{ISO8061,UTC,};
+  // enum class TimeType{ISO8061,UTC,};
   /**
    * @brief 将unix标准时间转换为utc时间
    * @param unix_time linux自带的时间
    * @return UTC_TIME结构体
    */
-  virtual UTC_TIME unix_to_utc(const time_t& unix_time) = 0;
+  virtual UTC_TIME unix_to_utc(const time_t &unix_time) = 0;
 
   /**
    * @brief 将UTC结构体转换为UTC标准的格式,即YYYYMMDDhhmmss[.s..]Z
    * @param utc_time[in] 系统内的UTC结构体
    * @return
    */
-  virtual std::string utc_format(const UTC_TIME& utc_time) = 0;
+  virtual std::string utc_format(const UTC_TIME &utc_time) = 0;
   // 时间的表示格式为:  YYYYMMDDhhmmss[.s..]Z
   // YYYY + MM + DD + hh + mm + ss + [.s..]Z
   // YYYY   为年份,应是4位数年份,如2003
@@ -56,4 +56,4 @@ public:
   static std::unique_ptr<TimeAdaptor> make();
 };
 
-}
+} // namespace ndsec::time

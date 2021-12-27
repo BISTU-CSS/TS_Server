@@ -8,8 +8,6 @@ class BusinessManager {
 public:
   virtual ~BusinessManager() = default;
 
-
-
   static std::unique_ptr<BusinessManager> make();
 };
 
