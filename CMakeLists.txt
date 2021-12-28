@@ -16,6 +16,7 @@ message(STATUS "Current cxx_flags: ${CMAKE_CXX_FLAGS}")
 #include(${PROJECT_SOURCE_DIR}/mod_station/wingman/grpc.cmake)
 include(${PROJECT_SOURCE_DIR}/mod_station/wingman/common.cmake)
 include(${PROJECT_SOURCE_DIR}/mod_station/wingman/fmt.cmake)
+include(${PROJECT_SOURCE_DIR}/mod_station/wingman/glog.cmake)
 #include(${})
 
 # install git hooks
@@ -28,7 +29,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC ${PROJECT_BINARY_DIR})
 target_include_directories(${PROJECT_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include)
 target_include_directories(${PROJECT_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/src)
 
-target_link_libraries(${PROJECT_NAME} PUBLIC timestamp_common fmt)
+target_link_libraries(${PROJECT_NAME} PUBLIC timestamp_common fmt glog::glog)
 
 add_subdirectory(sample)
 
