@@ -8,4 +8,6 @@ int main(int argc,char* argv[]) {
   FLAGS_log_dir = "/tmp/logs/";
   int num_cookies = 11;
   LOG_IF(INFO, num_cookies > 10) << "Got lots of cookies";
+
+  google::ShutdownGoogleLogging();
 }

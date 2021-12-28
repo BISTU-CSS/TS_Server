@@ -3,8 +3,6 @@
 #include <memory>
 #include <string>
 
-#include "time_adaptor.h"
-
 namespace ndsec::timetool {
 
 /**

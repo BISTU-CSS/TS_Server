@@ -1,6 +1,10 @@
 #include "time_manager.h"
 #include "time.h"
 
+#include "time_adaptor.h"
+
+#include "glog/logging.h"
+
 namespace ndsec::timetool {
 
 class TimeManagerImpl : public TimeManager {
@@ -18,8 +22,10 @@ public:
     case TimeType::UTC8:
       return get_time_from_unix_utc8();
     default:
-      return "";
+      LOG(ERROR) << "not ";
     }
+
+    return "";
   }
 
 private:
