@@ -13,11 +13,8 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
 message(STATUS "Current cxx_flags: ${CMAKE_CXX_FLAGS}")
 
 # include dependencies
-#include(${PROJECT_SOURCE_DIR}/mod_station/wingman/grpc.cmake)
 include(${PROJECT_SOURCE_DIR}/mod_station/wingman/common.cmake)
 include(${PROJECT_SOURCE_DIR}/mod_station/wingman/fmt.cmake)
-include(${PROJECT_SOURCE_DIR}/mod_station/wingman/glog.cmake)
-#include(${})
 
 # install git hooks
 #include(${PROJECT_SOURCE_DIR}/ndsec_helper/githooks/apply_git_hooks.cmake)

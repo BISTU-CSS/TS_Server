@@ -1,7 +1,9 @@
 #include "session_manager.h"
 
 #include <boost/unordered_map.hpp>
-#include <openssl/rand.h>
+#include <random>
+
+#include "common/handle_pool.h"
 
 namespace ndsec::stf::session {
 

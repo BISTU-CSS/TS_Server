@@ -17,7 +17,9 @@ class TimestampServer {
 public:
   virtual ~TimestampServer() = default;
 
-  virtual bool add_timestamp() = 0;
+  virtual std::string add_timestamp() = 0;
+
+  virtual bool update_clock() = 0;
 
   static std::unique_ptr<TimestampServer> make();
 };

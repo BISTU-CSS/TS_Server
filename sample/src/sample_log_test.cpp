@@ -2,8 +2,9 @@
 
 #include "glog/logging.h"
 
-int main(int argc,char* argv[]) {
-  if(argc){};
+int main(int argc, char *argv[]) {
+  if (argc) {
+  };
   google::InitGoogleLogging(argv[0]);
   FLAGS_log_dir = "/tmp/logs/";
   int num_cookies = 11;
