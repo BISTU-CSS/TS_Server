@@ -6,14 +6,6 @@
 namespace ndsec::timetool {
 
 /**
- * @brief 可信时间源选择列表
- * @param Unix Linux系统自带的时间(测试用)
- * @param BeiDou 北斗卫星时间
- * @param Clock 机器自带原子钟时间
- */
-enum class TimeType { UTC8, UTC };
-
-/**
  * @brief 对系统的时钟进行管理
  */
 class TimeManager {
@@ -31,7 +23,7 @@ public:
    * @param type[in] 输入时间源
    * @return
    */
-  virtual std::string get_time(TimeType type) = 0;
+  virtual std::string get_time() = 0;
 
 public:
   static std::unique_ptr<TimeManager> make();

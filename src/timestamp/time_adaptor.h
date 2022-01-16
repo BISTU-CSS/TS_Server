@@ -26,17 +26,21 @@ public:
 
   /**
    * @brief 将unix标准时间转换为utc时间
-   * @param unix_time linux自带的时间
+   * @param unix_time UTC结构体,单位为秒
+   * @param micro_seconds 微秒
    * @return UTC_TIME结构体
    */
-  virtual UTC_TIME unix_to_utc(const time_t &unix_time) = 0;
+  virtual UTC_TIME unix_to_utc(const time_t &unix_time,
+                               __suseconds_t micro_seconds) = 0;
 
   /**
    * @brief 将unix标准时间转换为北京时间UTC+8
-   * @param unix_time[in] UTC结构体
+   * @param unix_time[in] UTC结构体,单位为秒
+   * @param micro_seconds[in] 微妙
    * @return
    */
-  virtual UTC_TIME unix32_to_UTC_beijing(const time_t &unix_time) = 0;
+  virtual UTC_TIME unix32_to_UTC_beijing(const time_t &unix_time,
+                                         __suseconds_t micro_seconds) = 0;
   /**
    * @brief 将UTC结构体转换为UTC标准的格式,即YYYYMMDDhhmmss[.s..]Z
    * @param utc_time[in] UTC结构体

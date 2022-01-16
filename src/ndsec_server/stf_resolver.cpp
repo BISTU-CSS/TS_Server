@@ -1,6 +1,5 @@
-#include <iostream>
-
 #include "stf_resolver.h"
+
 #include "time_stamp_server.h"
 #include "grpc_cs/greeter_server.h"
 using namespace timestamp;

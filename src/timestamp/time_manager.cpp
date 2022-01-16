@@ -1,9 +1,12 @@
 #include "time_manager.h"
-#include "time.h"
 
+#include "common/exception.h"
+#include "ndsec_ts_error.h"
 #include "time_adaptor.h"
 
-#include "glog/logging.h"
+#include <sys/time.h>
+
+#include <glog/logging.h>
 
 namespace ndsec::timetool {
 
@@ -15,28 +18,33 @@ public:
 
   void reload_time() override {}
 
-  std::string get_time(TimeType type) override {
-    switch (type) {
-    case TimeType::UTC:
-      return get_time_from_unix_utc();
-    case TimeType::UTC8:
-      return get_time_from_unix_utc8();
-    default:
-      LOG(ERROR) << "not ";
-    }
+  std::string get_time() override {
+    std::string type =
+        "dd"; // TODO: 改变type的获取方式,改为从数据库System_info表中获取
 
-    return "";
+    if (type == "UTC") {
+      return get_time_from_unix_utc();
+    } else if (type == "UTC+8") {
+      return get_time_from_unix_utc8();
+    } else {
+      throw common::Exception(
+          TIMETYPE_ERROR, "failed to check TimeType in time_manager-get_time");
+      LOG(ERROR) << "failed to check TimeType in time_manager-get_time";
+    }
   }
 
 private:
   std::string get_time_from_unix_utc() {
-    time(&now);
-    return time_adaptor_->utc_format(time_adaptor_->unix_to_utc(now));
+    gettimeofday(&timecc, nullptr);
+
+    return time_adaptor_->utc_format(
+        time_adaptor_->unix_to_utc(timecc.tv_sec, timecc.tv_usec));
   }
 
   std::string get_time_from_unix_utc8() {
-    time(&now);
-    return time_adaptor_->utc_format(time_adaptor_->unix32_to_UTC_beijing(now));
+    gettimeofday(&timecc, nullptr);
+    return time_adaptor_->utc_format(
+        time_adaptor_->unix32_to_UTC_beijing(timecc.tv_sec, timecc.tv_usec));
   }
 
   std::string get_time_from_clock() { return ""; }
@@ -45,7 +53,7 @@ private:
 
 private:
   std::unique_ptr<timetool::TimeAdaptor> time_adaptor_;
-  time_t now{};
+  struct timeval timecc {};
 };
 
 std::unique_ptr<TimeManager> TimeManager::make() {

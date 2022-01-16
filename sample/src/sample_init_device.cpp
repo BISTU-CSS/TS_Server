@@ -11,8 +11,7 @@ int main(int argc, char *argv[]) {
     auto time_clock = ndsec::TimestampServer::make();
     try {
       time_clock->update_clock();
-    } catch(std::exception exception){
-
+    } catch (std::exception exception) {
     }
     sleep(3200);
 

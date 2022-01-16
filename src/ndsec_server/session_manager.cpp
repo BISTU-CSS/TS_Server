@@ -1,9 +1,10 @@
 #include "session_manager.h"
 
-#include <boost/unordered_map.hpp>
+#include "common/handle_pool.h"
+
 #include <random>
 
-#include "common/handle_pool.h"
+#include <boost/unordered_map.hpp>
 
 namespace ndsec::stf::session {
 
