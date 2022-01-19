@@ -2,50 +2,51 @@
 
 #include "common/handle_pool.h"
 
-#include <random>
-
-#include <boost/unordered_map.hpp>
-
 namespace ndsec::stf::session {
 
 class SessionManagerImpl : public SessionManager {
 public:
   SessionManagerImpl()
-      : handle_pool_{config_, [](const uint32_t *p) { delete p; }} {}
+      : handle_pool_{config_, [](const uint64_t *p) { delete p; }} {
+    handle_pool_.garbage_collect_loop();
+  }
 
-  bool is_session_exist(uint32_t session) override {
-    if (session_map_.find(session) == session_map_.end()) {
-      return false;
+  bool is_session_exist(uint64_t session) override {
+    auto *session_pointer = reinterpret_cast<uint64_t *>(static_cast<uintptr_t>(session));
+    if(handle_pool_.find(session_pointer)) {
+      return true;
     }
-    return true;
+    return false;
   }
 
-  uint32_t get_session() override {
+  uint64_t get_session() override {
     // generate random
-    handle_pool_
-        // check random is/not exist
-
-        // put the random into the session map
-
-        return 0;
+    auto x = new uint64_t{1};
+    uint8_t xww[16];
+    uint64_t z;
+    handle_pool_.push(x);
+    sprintf(reinterpret_cast<char *>(xww),"%p", x);
+    sscanf(reinterpret_cast<const char *>(xww), "%lx", &z);
+    return z;
   }
 
-  bool free_session(uint32_t session) override {
-    if (session_map_.erase(session)) {
+  bool free_session(uint64_t session) override {
+    auto *a = reinterpret_cast<uint64_t *>(static_cast<uintptr_t>(session));
+    if(handle_pool_.find(a)){
+      handle_pool_.erase(a);
       return true;
     }
     return false;
   }
 
   bool cleanup_session() override {
-    session_map_.clear();
+    handle_pool_.empty();
     return true;
   }
 
 private:
   // session_pool结构体
-  std::unordered_map<uint32_t, bool> session_map_;
-  common::HandlePool<uint32_t> handle_pool_;
+  common::HandlePool<uint64_t> handle_pool_;
   common::HandlePoolConfig config_{static_cast<size_t>(1e4),
                                    static_cast<size_t>(1e4)};
 };
