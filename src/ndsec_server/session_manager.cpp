@@ -12,8 +12,9 @@ public:
   }
 
   bool is_session_exist(uint64_t session) override {
-    auto *session_pointer = reinterpret_cast<uint64_t *>(static_cast<uintptr_t>(session));
-    if(handle_pool_.find(session_pointer)) {
+    auto *session_pointer =
+        reinterpret_cast<uint64_t *>(static_cast<uintptr_t>(session));
+    if (handle_pool_.find(session_pointer)) {
       return true;
     }
     return false;
@@ -25,14 +26,14 @@ public:
     uint8_t xww[16];
     uint64_t z;
     handle_pool_.push(x);
-    sprintf(reinterpret_cast<char *>(xww),"%p", x);
+    sprintf(reinterpret_cast<char *>(xww), "%p", x);
     sscanf(reinterpret_cast<const char *>(xww), "%lx", &z);
     return z;
   }
 
   bool free_session(uint64_t session) override {
     auto *a = reinterpret_cast<uint64_t *>(static_cast<uintptr_t>(session));
-    if(handle_pool_.find(a)){
+    if (handle_pool_.find(a)) {
       handle_pool_.erase(a);
       return true;
     }
