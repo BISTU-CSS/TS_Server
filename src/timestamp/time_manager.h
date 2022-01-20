@@ -19,7 +19,7 @@ public:
   virtual void reload_time() = 0;
 
   /**
-   * @brief 获得当前时间
+   * @brief 获得当前时间,需要将系统的TimeZone换为GMT-0
    * @param type[in] 输入时间源
    * @return
    */

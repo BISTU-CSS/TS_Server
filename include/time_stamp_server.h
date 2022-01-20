@@ -19,8 +19,6 @@ public:
 
   virtual std::string add_timestamp() = 0;
 
-  virtual
-
   virtual bool update_clock() = 0;
 
   static std::unique_ptr<TimestampServer> make();

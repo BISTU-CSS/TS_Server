@@ -15,7 +15,7 @@ public:
     return true;
   }
 
-  bool close_server() override {
+  bool close_server() {
     // 在切换时间源前关闭所有服务
 
     return true;
@@ -43,9 +43,8 @@ private:
   bool get_time_ctx() { return true; }
 
 private:
-  uint8_t source_type = 0; // 0表示使用系统的板卡进行时间戳
+ // uint8_t source_type = 0; // 0表示使用系统的板卡进行时间戳
                            // 1表示使用NTP可信时间源进行时间校准 2表示使用
-  timetool::TimeType time_source_; //时间源,表示
 };
 
 std::unique_ptr<TimestampServer> TimestampServer::make() {
