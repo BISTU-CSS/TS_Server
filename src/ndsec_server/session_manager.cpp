@@ -41,8 +41,7 @@ public:
   }
 
   bool cleanup_session() override {
-    handle_pool_.empty();
-    return true;
+    return handle_pool_.empty();
   }
 
 private:

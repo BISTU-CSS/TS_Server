@@ -11,28 +11,6 @@ class TimestampServerImpl : public TimestampServer {
 public:
   bool init_server() {
     // 从共享内存中获得目前要使用的时间源
-    switch (source_type) {
-    case 0:
-      // 获取共享内存中的时间信息
-      time_source_ = timetool::TimeType::UTC;
-      if (time_source_ == timetool::TimeType::UTC) {
-
-      } else if (time_source_ == timetool::TimeType::UTC8) {
-      }
-      // 检查/测试板卡
-
-      // 校准时间 set clock
-
-      break;
-    case 1:
-      // 获取共享内存中的时间信息
-
-      break;
-    case 2:
-      // 获取共享内存中的时间信息
-
-      break;
-    }
 
     return true;
   }
