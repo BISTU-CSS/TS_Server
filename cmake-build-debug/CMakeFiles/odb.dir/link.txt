@@ -1,0 +1,1 @@
+/usr/bin/c++   -std=c++11 -pthread  -O0 -Wall -g2 -ggdb  -rdynamic CMakeFiles/odb.dir/main.cpp.o CMakeFiles/odb.dir/persistent/system_info-odb.cxx.o CMakeFiles/odb.dir/thread/BaseThread.cpp.o CMakeFiles/odb.dir/database_wrapper/database_wrapper.cpp.o  -o odb  -lodb-mysql -lodb 

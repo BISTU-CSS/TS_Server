@@ -1,0 +1,4 @@
+/opt/cmake-3.17.2-Linux-x86_64/bin/cmake -DCMAKE_BUILD_TYPE=Debug -G "CodeBlocks - Unix Makefiles" /home/wc/Project/C++/tsaodb
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /home/wc/Project/C++/tsaodb/cmake-build-debug

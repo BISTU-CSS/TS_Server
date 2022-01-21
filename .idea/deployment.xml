@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="PublishConfigData" serverName="Remote Development" remoteFilesAllowedToDisappearOnAutoupload="false">
+    <serverData>
+      <paths name="Remote Host (1ab61e1f-45b7-4a5e-af93-789449bea2a4)">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/tmp/odb" local="$PROJECT_DIR$" />
+          </mappings>
+        </serverdata>
+      </paths>
+      <paths name="odb (400d43f7-972f-469b-90b8-921eeddeadac)">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/home/wc/Project/C++/tsaodb" local="$PROJECT_DIR$" />
+          </mappings>
+          <excludedPaths>
+            <excludedPath local="true" path="$PROJECT_DIR$/cmake-build-debug" />
+          </excludedPaths>
+        </serverdata>
+      </paths>
+    </serverData>
+  </component>
+</project>
