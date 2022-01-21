@@ -6,24 +6,6 @@
 
 #IncludeRegexTransform: 
 
-/home/wc/Project/C++/tsaodb/database_wrapper/database_wrapper.cpp
-database_wrapper.h
-/home/wc/Project/C++/tsaodb/database_wrapper/database_wrapper.h
-memory
--
-odb/transaction.hxx
--
-odb/database.hxx
--
-odb/mysql/database.hxx
--
-../exception/result_more_than_one_exception.h
-/home/wc/Project/C++/tsaodb/exception/result_more_than_one_exception.h
-../persistent/system_info.h
-/home/wc/Project/C++/tsaodb/persistent/system_info.h
-../persistent/system_info-odb.hxx
-/home/wc/Project/C++/tsaodb/persistent/system_info-odb.hxx
-
 /home/wc/Project/C++/tsaodb/database_wrapper/database_wrapper.h
 memory
 -

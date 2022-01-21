@@ -46,16 +46,16 @@ create_database(
         const char *host,
         const int port
 ) {
-    auto_ptr<odb::mysql::connection_factory> f (
-            new odb::mysql::connection_pool_factory (100));
+    auto_ptr<odb::mysql::connection_factory> f(
+            new odb::mysql::connection_pool_factory(100));
     shared_ptr<database> db(new odb::mysql::database(
             user,
             passwd,
             dbname,
             host,
-            port,0,0,0,
+            port, 0, 0, 0,
             f
-           ));
+    ));
 
     return db;
 }
@@ -274,18 +274,78 @@ void test_thread() {
 
 int main(int argc, char *argv[]) {
 
+    //get singleton
     auto db = database_wrapper::get_instance("root",
-                                   "wc123456",
-                                   "test_odb",
-                                   "127.0.0.1",
-                                   3306);
+                                             "wc123456",
+                                             "test_odb",
+                                             "127.0.0.1",
+                                             3306);
+    //operations
+    try {
 
-    auto t = db->begin();
-    auto list = db->query_all();
-    t->commit();
+        {
+            //insert
+            auto t = db->begin();
+            auto one = db->query_one_by_condition(query<system_info>::conf_key == "key");
+            if(one == nullptr) {
+                system_info info1("key", "value");
+                db->persist(info1);
+            }
+            t->commit();
+        }
 
-    for (auto &i: list) {
-        cout << i.conf_value() << endl;
+        {
+            //delete
+            auto t = db->begin();
+            cout << db->delete_by_condition(odb::query<system_info>::conf_key == "key2") << endl;
+            t->commit();
+        }
+
+        {
+            //query by condition
+            auto t = db->begin();
+            auto list = db->query_by_condition(odb::query<system_info>::conf_key == "key4");
+            t->commit();
+
+            for (auto &i: *list) {
+                cout << i->conf_key() << endl;
+            }
+        }
+
+        try {
+            //query one
+            auto t = db->begin();
+            auto one = db->query_one_by_condition(odb::query<system_info>::conf_key == "key4");
+            if(one != nullptr) {
+                cout << one->conf_key() << endl;
+            }
+
+            t->commit();
+        }
+        catch (result_more_than_one_exception &e) {
+            cout << e.what() << endl;
+        }
+
+        {
+            //query all
+            auto t = db->begin();
+            auto list = db->query_all();
+            t->commit();
+
+            for (auto &i: *list) {
+                cout << i->conf_value() << endl;
+            }
+        }
+
+        {
+            //update by pri key
+            auto t = db->begin();
+            system_info systemInfo("key5", "");
+            db->update_by_pri_key(systemInfo);
+            t->commit();
+        }
+    } catch (odb::exception &e) {
+        cerr << e.what() << endl;
     }
     return 0;
 }
