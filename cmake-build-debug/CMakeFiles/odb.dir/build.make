@@ -103,9 +103,48 @@ CMakeFiles/odb.dir/persistent/system_info-odb.cxx.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/odb.dir/persistent/system_info-odb.cxx.s"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/wc/Project/C++/tsaodb/persistent/system_info-odb.cxx -o CMakeFiles/odb.dir/persistent/system_info-odb.cxx.s
 
+CMakeFiles/odb.dir/persistent/sm2_key_info-odb.cxx.o: CMakeFiles/odb.dir/flags.make
+CMakeFiles/odb.dir/persistent/sm2_key_info-odb.cxx.o: ../persistent/sm2_key_info-odb.cxx
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/wc/Project/C++/tsaodb/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Building CXX object CMakeFiles/odb.dir/persistent/sm2_key_info-odb.cxx.o"
+	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/odb.dir/persistent/sm2_key_info-odb.cxx.o -c /home/wc/Project/C++/tsaodb/persistent/sm2_key_info-odb.cxx
+
+CMakeFiles/odb.dir/persistent/sm2_key_info-odb.cxx.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/odb.dir/persistent/sm2_key_info-odb.cxx.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/wc/Project/C++/tsaodb/persistent/sm2_key_info-odb.cxx > CMakeFiles/odb.dir/persistent/sm2_key_info-odb.cxx.i
+
+CMakeFiles/odb.dir/persistent/sm2_key_info-odb.cxx.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/odb.dir/persistent/sm2_key_info-odb.cxx.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/wc/Project/C++/tsaodb/persistent/sm2_key_info-odb.cxx -o CMakeFiles/odb.dir/persistent/sm2_key_info-odb.cxx.s
+
+CMakeFiles/odb.dir/utils/entity_output.cpp.o: CMakeFiles/odb.dir/flags.make
+CMakeFiles/odb.dir/utils/entity_output.cpp.o: ../utils/entity_output.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/wc/Project/C++/tsaodb/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_4) "Building CXX object CMakeFiles/odb.dir/utils/entity_output.cpp.o"
+	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/odb.dir/utils/entity_output.cpp.o -c /home/wc/Project/C++/tsaodb/utils/entity_output.cpp
+
+CMakeFiles/odb.dir/utils/entity_output.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/odb.dir/utils/entity_output.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/wc/Project/C++/tsaodb/utils/entity_output.cpp > CMakeFiles/odb.dir/utils/entity_output.cpp.i
+
+CMakeFiles/odb.dir/utils/entity_output.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/odb.dir/utils/entity_output.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/wc/Project/C++/tsaodb/utils/entity_output.cpp -o CMakeFiles/odb.dir/utils/entity_output.cpp.s
+
+CMakeFiles/odb.dir/persistent/timestamp_log-odb.cxx.o: CMakeFiles/odb.dir/flags.make
+CMakeFiles/odb.dir/persistent/timestamp_log-odb.cxx.o: ../persistent/timestamp_log-odb.cxx
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/wc/Project/C++/tsaodb/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_5) "Building CXX object CMakeFiles/odb.dir/persistent/timestamp_log-odb.cxx.o"
+	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/odb.dir/persistent/timestamp_log-odb.cxx.o -c /home/wc/Project/C++/tsaodb/persistent/timestamp_log-odb.cxx
+
+CMakeFiles/odb.dir/persistent/timestamp_log-odb.cxx.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/odb.dir/persistent/timestamp_log-odb.cxx.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/wc/Project/C++/tsaodb/persistent/timestamp_log-odb.cxx > CMakeFiles/odb.dir/persistent/timestamp_log-odb.cxx.i
+
+CMakeFiles/odb.dir/persistent/timestamp_log-odb.cxx.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/odb.dir/persistent/timestamp_log-odb.cxx.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/wc/Project/C++/tsaodb/persistent/timestamp_log-odb.cxx -o CMakeFiles/odb.dir/persistent/timestamp_log-odb.cxx.s
+
 CMakeFiles/odb.dir/thread/BaseThread.cpp.o: CMakeFiles/odb.dir/flags.make
 CMakeFiles/odb.dir/thread/BaseThread.cpp.o: ../thread/BaseThread.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/wc/Project/C++/tsaodb/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Building CXX object CMakeFiles/odb.dir/thread/BaseThread.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/wc/Project/C++/tsaodb/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_6) "Building CXX object CMakeFiles/odb.dir/thread/BaseThread.cpp.o"
 	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/odb.dir/thread/BaseThread.cpp.o -c /home/wc/Project/C++/tsaodb/thread/BaseThread.cpp
 
 CMakeFiles/odb.dir/thread/BaseThread.cpp.i: cmake_force
@@ -116,36 +155,27 @@ CMakeFiles/odb.dir/thread/BaseThread.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/odb.dir/thread/BaseThread.cpp.s"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/wc/Project/C++/tsaodb/thread/BaseThread.cpp -o CMakeFiles/odb.dir/thread/BaseThread.cpp.s
 
-CMakeFiles/odb.dir/database_wrapper/database_wrapper.cpp.o: CMakeFiles/odb.dir/flags.make
-CMakeFiles/odb.dir/database_wrapper/database_wrapper.cpp.o: ../database_wrapper/database_wrapper.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/wc/Project/C++/tsaodb/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_4) "Building CXX object CMakeFiles/odb.dir/database_wrapper/database_wrapper.cpp.o"
-	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/odb.dir/database_wrapper/database_wrapper.cpp.o -c /home/wc/Project/C++/tsaodb/database_wrapper/database_wrapper.cpp
-
-CMakeFiles/odb.dir/database_wrapper/database_wrapper.cpp.i: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/odb.dir/database_wrapper/database_wrapper.cpp.i"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/wc/Project/C++/tsaodb/database_wrapper/database_wrapper.cpp > CMakeFiles/odb.dir/database_wrapper/database_wrapper.cpp.i
-
-CMakeFiles/odb.dir/database_wrapper/database_wrapper.cpp.s: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/odb.dir/database_wrapper/database_wrapper.cpp.s"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/wc/Project/C++/tsaodb/database_wrapper/database_wrapper.cpp -o CMakeFiles/odb.dir/database_wrapper/database_wrapper.cpp.s
-
 # Object files for target odb
 odb_OBJECTS = \
 "CMakeFiles/odb.dir/main.cpp.o" \
 "CMakeFiles/odb.dir/persistent/system_info-odb.cxx.o" \
-"CMakeFiles/odb.dir/thread/BaseThread.cpp.o" \
-"CMakeFiles/odb.dir/database_wrapper/database_wrapper.cpp.o"
+"CMakeFiles/odb.dir/persistent/sm2_key_info-odb.cxx.o" \
+"CMakeFiles/odb.dir/utils/entity_output.cpp.o" \
+"CMakeFiles/odb.dir/persistent/timestamp_log-odb.cxx.o" \
+"CMakeFiles/odb.dir/thread/BaseThread.cpp.o"
 
 # External object files for target odb
 odb_EXTERNAL_OBJECTS =
 
 odb: CMakeFiles/odb.dir/main.cpp.o
 odb: CMakeFiles/odb.dir/persistent/system_info-odb.cxx.o
+odb: CMakeFiles/odb.dir/persistent/sm2_key_info-odb.cxx.o
+odb: CMakeFiles/odb.dir/utils/entity_output.cpp.o
+odb: CMakeFiles/odb.dir/persistent/timestamp_log-odb.cxx.o
 odb: CMakeFiles/odb.dir/thread/BaseThread.cpp.o
-odb: CMakeFiles/odb.dir/database_wrapper/database_wrapper.cpp.o
 odb: CMakeFiles/odb.dir/build.make
 odb: CMakeFiles/odb.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/home/wc/Project/C++/tsaodb/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_5) "Linking CXX executable odb"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/home/wc/Project/C++/tsaodb/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_7) "Linking CXX executable odb"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/odb.dir/link.txt --verbose=$(VERBOSE)
 
 # Rule to build all files generated by this target.

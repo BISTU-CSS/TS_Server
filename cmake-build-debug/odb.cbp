@@ -82,19 +82,25 @@
 				</MakeCommands>
 			</Target>
 		</Build>
-		<Unit filename="/home/wc/Project/C++/tsaodb/database_wrapper/database_wrapper.cpp">
-			<Option target="odb"/>
-		</Unit>
-		<Unit filename="/home/wc/Project/C++/tsaodb/database_wrapper/database_wrapper.h">
-			<Option target="odb"/>
-		</Unit>
 		<Unit filename="/home/wc/Project/C++/tsaodb/main.cpp">
+			<Option target="odb"/>
+		</Unit>
+		<Unit filename="/home/wc/Project/C++/tsaodb/persistent/sm2_key_info-odb.cxx">
+			<Option target="odb"/>
+		</Unit>
+		<Unit filename="/home/wc/Project/C++/tsaodb/persistent/sm2_key_info-odb.hxx">
 			<Option target="odb"/>
 		</Unit>
 		<Unit filename="/home/wc/Project/C++/tsaodb/persistent/system_info-odb.cxx">
 			<Option target="odb"/>
 		</Unit>
 		<Unit filename="/home/wc/Project/C++/tsaodb/persistent/system_info-odb.hxx">
+			<Option target="odb"/>
+		</Unit>
+		<Unit filename="/home/wc/Project/C++/tsaodb/persistent/timestamp_log-odb.cxx">
+			<Option target="odb"/>
+		</Unit>
+		<Unit filename="/home/wc/Project/C++/tsaodb/persistent/timestamp_log-odb.hxx">
 			<Option target="odb"/>
 		</Unit>
 		<Unit filename="/home/wc/Project/C++/tsaodb/thread/BaseThread.cpp">
@@ -104,6 +110,9 @@
 			<Option target="odb"/>
 		</Unit>
 		<Unit filename="/home/wc/Project/C++/tsaodb/thread/transaction_test_thread.h">
+			<Option target="odb"/>
+		</Unit>
+		<Unit filename="/home/wc/Project/C++/tsaodb/utils/entity_output.cpp">
 			<Option target="odb"/>
 		</Unit>
 		<Unit filename="/home/wc/Project/C++/tsaodb/CMakeLists.txt">

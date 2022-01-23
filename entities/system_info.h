@@ -5,10 +5,10 @@
 #ifndef ODB_SYSTEM_INFO_H
 #define ODB_SYSTEM_INFO_H
 
-
 #include <string>
-
 #include <odb/core.hxx>
+#include "iostream"
+
 
 #pragma db object
 class system_info
@@ -47,6 +47,7 @@ private:
 
 };
 
-
+extern std::ostream&
+operator<<(std::ostream &out, const system_info &systemInfo);
 
 #endif //ODB_SYSTEM_INFO_H

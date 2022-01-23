@@ -9,8 +9,15 @@ SET(CMAKE_CXX_FLAGS_RELEASE "$ENV{CXXFLAGS} -O3 -Wall")
 
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -pthread")
 
-add_executable(odb main.cpp persistent/system_info-odb.cxx thread/transaction_test_thread.h thread/BaseThread.cpp
-        database_wrapper/database_wrapper.cpp)
+add_executable(odb main.cpp
+        persistent/system_info-odb.cxx
+        persistent/sm2_key_info-odb.cxx
+        utils/entity_output.cpp
+        persistent/timestamp_log-odb.cxx
+
+        thread/transaction_test_thread.h
+        thread/BaseThread.cpp
+        )
 
 target_link_libraries(
  ${PROJECT_NAME}

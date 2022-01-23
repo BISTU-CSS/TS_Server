@@ -143,33 +143,6 @@ odb/fast:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/odb.dir/build.make CMakeFiles/odb.dir/build
 .PHONY : odb/fast
 
-database_wrapper/database_wrapper.o: database_wrapper/database_wrapper.cpp.o
-
-.PHONY : database_wrapper/database_wrapper.o
-
-# target to build an object file
-database_wrapper/database_wrapper.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/odb.dir/build.make CMakeFiles/odb.dir/database_wrapper/database_wrapper.cpp.o
-.PHONY : database_wrapper/database_wrapper.cpp.o
-
-database_wrapper/database_wrapper.i: database_wrapper/database_wrapper.cpp.i
-
-.PHONY : database_wrapper/database_wrapper.i
-
-# target to preprocess a source file
-database_wrapper/database_wrapper.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/odb.dir/build.make CMakeFiles/odb.dir/database_wrapper/database_wrapper.cpp.i
-.PHONY : database_wrapper/database_wrapper.cpp.i
-
-database_wrapper/database_wrapper.s: database_wrapper/database_wrapper.cpp.s
-
-.PHONY : database_wrapper/database_wrapper.s
-
-# target to generate assembly for a file
-database_wrapper/database_wrapper.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/odb.dir/build.make CMakeFiles/odb.dir/database_wrapper/database_wrapper.cpp.s
-.PHONY : database_wrapper/database_wrapper.cpp.s
-
 main.o: main.cpp.o
 
 .PHONY : main.o
@@ -196,6 +169,33 @@ main.s: main.cpp.s
 main.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/odb.dir/build.make CMakeFiles/odb.dir/main.cpp.s
 .PHONY : main.cpp.s
+
+persistent/sm2_key_info-odb.o: persistent/sm2_key_info-odb.cxx.o
+
+.PHONY : persistent/sm2_key_info-odb.o
+
+# target to build an object file
+persistent/sm2_key_info-odb.cxx.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/odb.dir/build.make CMakeFiles/odb.dir/persistent/sm2_key_info-odb.cxx.o
+.PHONY : persistent/sm2_key_info-odb.cxx.o
+
+persistent/sm2_key_info-odb.i: persistent/sm2_key_info-odb.cxx.i
+
+.PHONY : persistent/sm2_key_info-odb.i
+
+# target to preprocess a source file
+persistent/sm2_key_info-odb.cxx.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/odb.dir/build.make CMakeFiles/odb.dir/persistent/sm2_key_info-odb.cxx.i
+.PHONY : persistent/sm2_key_info-odb.cxx.i
+
+persistent/sm2_key_info-odb.s: persistent/sm2_key_info-odb.cxx.s
+
+.PHONY : persistent/sm2_key_info-odb.s
+
+# target to generate assembly for a file
+persistent/sm2_key_info-odb.cxx.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/odb.dir/build.make CMakeFiles/odb.dir/persistent/sm2_key_info-odb.cxx.s
+.PHONY : persistent/sm2_key_info-odb.cxx.s
 
 persistent/system_info-odb.o: persistent/system_info-odb.cxx.o
 
@@ -224,6 +224,33 @@ persistent/system_info-odb.cxx.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/odb.dir/build.make CMakeFiles/odb.dir/persistent/system_info-odb.cxx.s
 .PHONY : persistent/system_info-odb.cxx.s
 
+persistent/timestamp_log-odb.o: persistent/timestamp_log-odb.cxx.o
+
+.PHONY : persistent/timestamp_log-odb.o
+
+# target to build an object file
+persistent/timestamp_log-odb.cxx.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/odb.dir/build.make CMakeFiles/odb.dir/persistent/timestamp_log-odb.cxx.o
+.PHONY : persistent/timestamp_log-odb.cxx.o
+
+persistent/timestamp_log-odb.i: persistent/timestamp_log-odb.cxx.i
+
+.PHONY : persistent/timestamp_log-odb.i
+
+# target to preprocess a source file
+persistent/timestamp_log-odb.cxx.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/odb.dir/build.make CMakeFiles/odb.dir/persistent/timestamp_log-odb.cxx.i
+.PHONY : persistent/timestamp_log-odb.cxx.i
+
+persistent/timestamp_log-odb.s: persistent/timestamp_log-odb.cxx.s
+
+.PHONY : persistent/timestamp_log-odb.s
+
+# target to generate assembly for a file
+persistent/timestamp_log-odb.cxx.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/odb.dir/build.make CMakeFiles/odb.dir/persistent/timestamp_log-odb.cxx.s
+.PHONY : persistent/timestamp_log-odb.cxx.s
+
 thread/BaseThread.o: thread/BaseThread.cpp.o
 
 .PHONY : thread/BaseThread.o
@@ -251,6 +278,33 @@ thread/BaseThread.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/odb.dir/build.make CMakeFiles/odb.dir/thread/BaseThread.cpp.s
 .PHONY : thread/BaseThread.cpp.s
 
+utils/entity_output.o: utils/entity_output.cpp.o
+
+.PHONY : utils/entity_output.o
+
+# target to build an object file
+utils/entity_output.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/odb.dir/build.make CMakeFiles/odb.dir/utils/entity_output.cpp.o
+.PHONY : utils/entity_output.cpp.o
+
+utils/entity_output.i: utils/entity_output.cpp.i
+
+.PHONY : utils/entity_output.i
+
+# target to preprocess a source file
+utils/entity_output.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/odb.dir/build.make CMakeFiles/odb.dir/utils/entity_output.cpp.i
+.PHONY : utils/entity_output.cpp.i
+
+utils/entity_output.s: utils/entity_output.cpp.s
+
+.PHONY : utils/entity_output.s
+
+# target to generate assembly for a file
+utils/entity_output.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/odb.dir/build.make CMakeFiles/odb.dir/utils/entity_output.cpp.s
+.PHONY : utils/entity_output.cpp.s
+
 # Help Target
 help:
 	@echo "The following are some of the valid targets for this Makefile:"
@@ -260,18 +314,24 @@ help:
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
 	@echo "... odb"
-	@echo "... database_wrapper/database_wrapper.o"
-	@echo "... database_wrapper/database_wrapper.i"
-	@echo "... database_wrapper/database_wrapper.s"
 	@echo "... main.o"
 	@echo "... main.i"
 	@echo "... main.s"
+	@echo "... persistent/sm2_key_info-odb.o"
+	@echo "... persistent/sm2_key_info-odb.i"
+	@echo "... persistent/sm2_key_info-odb.s"
 	@echo "... persistent/system_info-odb.o"
 	@echo "... persistent/system_info-odb.i"
 	@echo "... persistent/system_info-odb.s"
+	@echo "... persistent/timestamp_log-odb.o"
+	@echo "... persistent/timestamp_log-odb.i"
+	@echo "... persistent/timestamp_log-odb.s"
 	@echo "... thread/BaseThread.o"
 	@echo "... thread/BaseThread.i"
 	@echo "... thread/BaseThread.s"
+	@echo "... utils/entity_output.o"
+	@echo "... utils/entity_output.i"
+	@echo "... utils/entity_output.s"
 .PHONY : help
 
 

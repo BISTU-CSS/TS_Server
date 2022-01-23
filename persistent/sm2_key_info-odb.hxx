@@ -2,8 +2,8 @@
 // compiler for C++.
 //
 
-#ifndef SYSTEM_INFO_ODB_HXX
-#define SYSTEM_INFO_ODB_HXX
+#ifndef SM2_KEY_INFO_ODB_HXX
+#define SM2_KEY_INFO_ODB_HXX
 
 #include <odb/version.hxx>
 
@@ -13,7 +13,7 @@
 
 #include <odb/pre.hxx>
 
-#include "../entities/system_info.h"
+#include "../entities/sm2_key_info.h"
 
 #include <memory>
 #include <cstddef>
@@ -33,27 +33,27 @@
 
 namespace odb
 {
-  // system_info
+  // sm2_key_info
   //
   template <>
-  struct class_traits< ::system_info >
+  struct class_traits< ::sm2_key_info >
   {
     static const class_kind kind = class_object;
   };
 
   template <>
-  class access::object_traits< ::system_info >
+  class access::object_traits< ::sm2_key_info >
   {
     public:
-    typedef ::system_info object_type;
-    typedef ::system_info* pointer_type;
+    typedef ::sm2_key_info object_type;
+    typedef ::sm2_key_info* pointer_type;
     typedef odb::pointer_traits<pointer_type> pointer_traits;
 
     static const bool polymorphic = false;
 
-    typedef ::std::string id_type;
+    typedef int id_type;
 
-    static const bool auto_id = false;
+    static const bool auto_id = true;
 
     static const bool abstract = false;
 
@@ -86,12 +86,48 @@ namespace odb
 
 namespace odb
 {
-  // system_info
+  // sm2_key_info
   //
   template <typename A>
-  struct query_columns< ::system_info, id_mysql, A >
+  struct query_columns< ::sm2_key_info, id_mysql, A >
   {
-    // conf_key
+    // key_id
+    //
+    typedef
+    mysql::query_column<
+      mysql::value_traits<
+        int,
+        mysql::id_long >::query_type,
+      mysql::id_long >
+    key_id_type_;
+
+    static const key_id_type_ key_id;
+
+    // key_purpose
+    //
+    typedef
+    mysql::query_column<
+      mysql::value_traits<
+        int,
+        mysql::id_long >::query_type,
+      mysql::id_long >
+    key_purpose_type_;
+
+    static const key_purpose_type_ key_purpose;
+
+    // key_mod
+    //
+    typedef
+    mysql::query_column<
+      mysql::value_traits<
+        int,
+        mysql::id_long >::query_type,
+      mysql::id_long >
+    key_mod_type_;
+
+    static const key_mod_type_ key_mod;
+
+    // pri_D
     //
     typedef
     mysql::query_column<
@@ -99,11 +135,11 @@ namespace odb
         ::std::string,
         mysql::id_string >::query_type,
       mysql::id_string >
-    conf_key_type_;
+    pri_D_type_;
 
-    static const conf_key_type_ conf_key;
+    static const pri_D_type_ pri_D;
 
-    // conf_value
+    // pub_X
     //
     typedef
     mysql::query_column<
@@ -111,36 +147,67 @@ namespace odb
         ::std::string,
         mysql::id_string >::query_type,
       mysql::id_string >
-    conf_value_type_;
+    pub_X_type_;
 
-    static const conf_value_type_ conf_value;
+    static const pub_X_type_ pub_X;
+
+    // pub_Y
+    //
+    typedef
+    mysql::query_column<
+      mysql::value_traits<
+        ::std::string,
+        mysql::id_string >::query_type,
+      mysql::id_string >
+    pub_Y_type_;
+
+    static const pub_Y_type_ pub_Y;
   };
 
   template <typename A>
-  const typename query_columns< ::system_info, id_mysql, A >::conf_key_type_
-  query_columns< ::system_info, id_mysql, A >::
-  conf_key (A::table_name, "`conf_key`", 0);
+  const typename query_columns< ::sm2_key_info, id_mysql, A >::key_id_type_
+  query_columns< ::sm2_key_info, id_mysql, A >::
+  key_id (A::table_name, "`key_id`", 0);
 
   template <typename A>
-  const typename query_columns< ::system_info, id_mysql, A >::conf_value_type_
-  query_columns< ::system_info, id_mysql, A >::
-  conf_value (A::table_name, "`conf_value`", 0);
+  const typename query_columns< ::sm2_key_info, id_mysql, A >::key_purpose_type_
+  query_columns< ::sm2_key_info, id_mysql, A >::
+  key_purpose (A::table_name, "`key_purpose`", 0);
 
   template <typename A>
-  struct pointer_query_columns< ::system_info, id_mysql, A >:
-    query_columns< ::system_info, id_mysql, A >
+  const typename query_columns< ::sm2_key_info, id_mysql, A >::key_mod_type_
+  query_columns< ::sm2_key_info, id_mysql, A >::
+  key_mod (A::table_name, "`key_mod`", 0);
+
+  template <typename A>
+  const typename query_columns< ::sm2_key_info, id_mysql, A >::pri_D_type_
+  query_columns< ::sm2_key_info, id_mysql, A >::
+  pri_D (A::table_name, "`pri_D`", 0);
+
+  template <typename A>
+  const typename query_columns< ::sm2_key_info, id_mysql, A >::pub_X_type_
+  query_columns< ::sm2_key_info, id_mysql, A >::
+  pub_X (A::table_name, "`pub_X`", 0);
+
+  template <typename A>
+  const typename query_columns< ::sm2_key_info, id_mysql, A >::pub_Y_type_
+  query_columns< ::sm2_key_info, id_mysql, A >::
+  pub_Y (A::table_name, "`pub_Y`", 0);
+
+  template <typename A>
+  struct pointer_query_columns< ::sm2_key_info, id_mysql, A >:
+    query_columns< ::sm2_key_info, id_mysql, A >
   {
   };
 
   template <>
-  class access::object_traits_impl< ::system_info, id_mysql >:
-    public access::object_traits< ::system_info >
+  class access::object_traits_impl< ::sm2_key_info, id_mysql >:
+    public access::object_traits< ::sm2_key_info >
   {
     public:
     struct id_image_type
     {
-      details::buffer id_value;
-      unsigned long id_size;
+      int id_value;
       my_bool id_null;
 
       std::size_t version;
@@ -148,17 +215,38 @@ namespace odb
 
     struct image_type
     {
-      // conf_key_
+      // key_id_
       //
-      details::buffer conf_key_value;
-      unsigned long conf_key_size;
-      my_bool conf_key_null;
+      int key_id_value;
+      my_bool key_id_null;
 
-      // conf_value_
+      // key_purpose_
       //
-      details::buffer conf_value_value;
-      unsigned long conf_value_size;
-      my_bool conf_value_null;
+      int key_purpose_value;
+      my_bool key_purpose_null;
+
+      // key_mod_
+      //
+      int key_mod_value;
+      my_bool key_mod_null;
+
+      // pri_D_
+      //
+      details::buffer pri_D_value;
+      unsigned long pri_D_size;
+      my_bool pri_D_null;
+
+      // pub_X_
+      //
+      details::buffer pub_X_value;
+      unsigned long pub_X_size;
+      my_bool pub_X_null;
+
+      // pub_Y_
+      //
+      details::buffer pub_Y_value;
+      unsigned long pub_Y_size;
+      my_bool pub_Y_null;
 
       std::size_t version;
     };
@@ -166,6 +254,9 @@ namespace odb
     struct extra_statement_cache_type;
 
     using object_traits<object_type>::id;
+
+    static id_type
+    id (const id_image_type&);
 
     static id_type
     id (const image_type&);
@@ -199,7 +290,7 @@ namespace odb
 
     typedef mysql::query_base query_base_type;
 
-    static const std::size_t column_count = 2UL;
+    static const std::size_t column_count = 6UL;
     static const std::size_t id_column_count = 1UL;
     static const std::size_t inverse_column_count = 0UL;
     static const std::size_t readonly_column_count = 0UL;
@@ -220,7 +311,7 @@ namespace odb
     static const char table_name[];
 
     static void
-    persist (database&, const object_type&);
+    persist (database&, object_type&);
 
     static pointer_type
     find (database&, const id_type&);
@@ -258,17 +349,17 @@ namespace odb
   };
 
   template <>
-  class access::object_traits_impl< ::system_info, id_common >:
-    public access::object_traits_impl< ::system_info, id_mysql >
+  class access::object_traits_impl< ::sm2_key_info, id_common >:
+    public access::object_traits_impl< ::sm2_key_info, id_mysql >
   {
   };
 
-  // system_info
+  // sm2_key_info
   //
 }
 
-#include "system_info-odb.ixx"
+#include "sm2_key_info-odb.ixx"
 
 #include <odb/post.hxx>
 
-#endif // SYSTEM_INFO_ODB_HXX
+#endif // SM2_KEY_INFO_ODB_HXX

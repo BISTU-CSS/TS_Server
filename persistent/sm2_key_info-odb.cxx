@@ -4,7 +4,7 @@
 
 #include <odb/pre.hxx>
 
-#include "system_info-odb.hxx"
+#include "sm2_key_info-odb.hxx"
 
 #include <cassert>
 #include <cstring>  // std::memcpy
@@ -24,10 +24,10 @@
 
 namespace odb
 {
-  // system_info
+  // sm2_key_info
   //
 
-  struct access::object_traits_impl< ::system_info, id_mysql >::extra_statement_cache_type
+  struct access::object_traits_impl< ::sm2_key_info, id_mysql >::extra_statement_cache_type
   {
     extra_statement_cache_type (
       mysql::connection&,
@@ -39,8 +39,28 @@ namespace odb
     }
   };
 
-  access::object_traits_impl< ::system_info, id_mysql >::id_type
-  access::object_traits_impl< ::system_info, id_mysql >::
+  access::object_traits_impl< ::sm2_key_info, id_mysql >::id_type
+  access::object_traits_impl< ::sm2_key_info, id_mysql >::
+  id (const id_image_type& i)
+  {
+    mysql::database* db (0);
+    ODB_POTENTIALLY_UNUSED (db);
+
+    id_type id;
+    {
+      mysql::value_traits<
+          int,
+          mysql::id_long >::set_value (
+        id,
+        i.id_value,
+        i.id_null);
+    }
+
+    return id;
+  }
+
+  access::object_traits_impl< ::sm2_key_info, id_mysql >::id_type
+  access::object_traits_impl< ::sm2_key_info, id_mysql >::
   id (const image_type& i)
   {
     mysql::database* db (0);
@@ -49,18 +69,17 @@ namespace odb
     id_type id;
     {
       mysql::value_traits<
-          ::std::string,
-          mysql::id_string >::set_value (
+          int,
+          mysql::id_long >::set_value (
         id,
-        i.conf_key_value,
-        i.conf_key_size,
-        i.conf_key_null);
+        i.key_id_value,
+        i.key_id_null);
     }
 
     return id;
   }
 
-  bool access::object_traits_impl< ::system_info, id_mysql >::
+  bool access::object_traits_impl< ::sm2_key_info, id_mysql >::
   grow (image_type& i,
         my_bool* t)
   {
@@ -69,26 +88,46 @@ namespace odb
 
     bool grew (false);
 
-    // conf_key_
+    // key_id_
     //
-    if (t[0UL])
+    t[0UL] = 0;
+
+    // key_purpose_
+    //
+    t[1UL] = 0;
+
+    // key_mod_
+    //
+    t[2UL] = 0;
+
+    // pri_D_
+    //
+    if (t[3UL])
     {
-      i.conf_key_value.capacity (i.conf_key_size);
+      i.pri_D_value.capacity (i.pri_D_size);
       grew = true;
     }
 
-    // conf_value_
+    // pub_X_
     //
-    if (t[1UL])
+    if (t[4UL])
     {
-      i.conf_value_value.capacity (i.conf_value_size);
+      i.pub_X_value.capacity (i.pub_X_size);
+      grew = true;
+    }
+
+    // pub_Y_
+    //
+    if (t[5UL])
+    {
+      i.pub_Y_value.capacity (i.pub_Y_size);
       grew = true;
     }
 
     return grew;
   }
 
-  void access::object_traits_impl< ::system_info, id_mysql >::
+  void access::object_traits_impl< ::sm2_key_info, id_mysql >::
   bind (MYSQL_BIND* b,
         image_type& i,
         mysql::statement_kind sk)
@@ -99,43 +138,75 @@ namespace odb
 
     std::size_t n (0);
 
-    // conf_key_
+    // key_id_
     //
     if (sk != statement_update)
     {
-      b[n].buffer_type = MYSQL_TYPE_STRING;
-      b[n].buffer = i.conf_key_value.data ();
-      b[n].buffer_length = static_cast<unsigned long> (
-        i.conf_key_value.capacity ());
-      b[n].length = &i.conf_key_size;
-      b[n].is_null = &i.conf_key_null;
+      b[n].buffer_type = MYSQL_TYPE_LONG;
+      b[n].is_unsigned = 0;
+      b[n].buffer = &i.key_id_value;
+      b[n].is_null = &i.key_id_null;
       n++;
     }
 
-    // conf_value_
+    // key_purpose_
+    //
+    b[n].buffer_type = MYSQL_TYPE_LONG;
+    b[n].is_unsigned = 0;
+    b[n].buffer = &i.key_purpose_value;
+    b[n].is_null = &i.key_purpose_null;
+    n++;
+
+    // key_mod_
+    //
+    b[n].buffer_type = MYSQL_TYPE_LONG;
+    b[n].is_unsigned = 0;
+    b[n].buffer = &i.key_mod_value;
+    b[n].is_null = &i.key_mod_null;
+    n++;
+
+    // pri_D_
     //
     b[n].buffer_type = MYSQL_TYPE_STRING;
-    b[n].buffer = i.conf_value_value.data ();
+    b[n].buffer = i.pri_D_value.data ();
     b[n].buffer_length = static_cast<unsigned long> (
-      i.conf_value_value.capacity ());
-    b[n].length = &i.conf_value_size;
-    b[n].is_null = &i.conf_value_null;
+      i.pri_D_value.capacity ());
+    b[n].length = &i.pri_D_size;
+    b[n].is_null = &i.pri_D_null;
+    n++;
+
+    // pub_X_
+    //
+    b[n].buffer_type = MYSQL_TYPE_STRING;
+    b[n].buffer = i.pub_X_value.data ();
+    b[n].buffer_length = static_cast<unsigned long> (
+      i.pub_X_value.capacity ());
+    b[n].length = &i.pub_X_size;
+    b[n].is_null = &i.pub_X_null;
+    n++;
+
+    // pub_Y_
+    //
+    b[n].buffer_type = MYSQL_TYPE_STRING;
+    b[n].buffer = i.pub_Y_value.data ();
+    b[n].buffer_length = static_cast<unsigned long> (
+      i.pub_Y_value.capacity ());
+    b[n].length = &i.pub_Y_size;
+    b[n].is_null = &i.pub_Y_null;
     n++;
   }
 
-  void access::object_traits_impl< ::system_info, id_mysql >::
+  void access::object_traits_impl< ::sm2_key_info, id_mysql >::
   bind (MYSQL_BIND* b, id_image_type& i)
   {
     std::size_t n (0);
-    b[n].buffer_type = MYSQL_TYPE_STRING;
-    b[n].buffer = i.id_value.data ();
-    b[n].buffer_length = static_cast<unsigned long> (
-      i.id_value.capacity ());
-    b[n].length = &i.id_size;
+    b[n].buffer_type = MYSQL_TYPE_LONG;
+    b[n].is_unsigned = 0;
+    b[n].buffer = &i.id_value;
     b[n].is_null = &i.id_null;
   }
 
-  bool access::object_traits_impl< ::system_info, id_mysql >::
+  bool access::object_traits_impl< ::sm2_key_info, id_mysql >::
   init (image_type& i,
         const object_type& o,
         mysql::statement_kind sk)
@@ -148,53 +219,116 @@ namespace odb
 
     bool grew (false);
 
-    // conf_key_
+    // key_id_
     //
     if (sk == statement_insert)
     {
-      ::std::string const& v =
-        o.conf_key_;
+      int const& v =
+        o.key_id_;
 
       bool is_null (false);
-      std::size_t size (0);
-      std::size_t cap (i.conf_key_value.capacity ());
       mysql::value_traits<
-          ::std::string,
-          mysql::id_string >::set_image (
-        i.conf_key_value,
-        size,
-        is_null,
-        v);
-      i.conf_key_null = is_null;
-      i.conf_key_size = static_cast<unsigned long> (size);
-      grew = grew || (cap != i.conf_key_value.capacity ());
+          int,
+          mysql::id_long >::set_image (
+        i.key_id_value, is_null, v);
+      i.key_id_null = is_null;
     }
 
-    // conf_value_
+    // key_purpose_
+    //
+    {
+      int const& v =
+        o.key_purpose_;
+
+      bool is_null (false);
+      mysql::value_traits<
+          int,
+          mysql::id_long >::set_image (
+        i.key_purpose_value, is_null, v);
+      i.key_purpose_null = is_null;
+    }
+
+    // key_mod_
+    //
+    {
+      int const& v =
+        o.key_mod_;
+
+      bool is_null (false);
+      mysql::value_traits<
+          int,
+          mysql::id_long >::set_image (
+        i.key_mod_value, is_null, v);
+      i.key_mod_null = is_null;
+    }
+
+    // pri_D_
     //
     {
       ::std::string const& v =
-        o.conf_value_;
+        o.pri_D_;
 
       bool is_null (false);
       std::size_t size (0);
-      std::size_t cap (i.conf_value_value.capacity ());
+      std::size_t cap (i.pri_D_value.capacity ());
       mysql::value_traits<
           ::std::string,
           mysql::id_string >::set_image (
-        i.conf_value_value,
+        i.pri_D_value,
         size,
         is_null,
         v);
-      i.conf_value_null = is_null;
-      i.conf_value_size = static_cast<unsigned long> (size);
-      grew = grew || (cap != i.conf_value_value.capacity ());
+      i.pri_D_null = is_null;
+      i.pri_D_size = static_cast<unsigned long> (size);
+      grew = grew || (cap != i.pri_D_value.capacity ());
+    }
+
+    // pub_X_
+    //
+    {
+      ::std::string const& v =
+        o.pub_X_;
+
+      bool is_null (false);
+      std::size_t size (0);
+      std::size_t cap (i.pub_X_value.capacity ());
+      mysql::value_traits<
+          ::std::string,
+          mysql::id_string >::set_image (
+        i.pub_X_value,
+        size,
+        is_null,
+        v);
+      i.pub_X_null = is_null;
+      i.pub_X_size = static_cast<unsigned long> (size);
+      grew = grew || (cap != i.pub_X_value.capacity ());
+    }
+
+    // pub_Y_
+    //
+    {
+      ::std::string const& v =
+        o.pub_Y_;
+
+      bool is_null (false);
+      std::size_t size (0);
+      std::size_t cap (i.pub_Y_value.capacity ());
+      mysql::value_traits<
+          ::std::string,
+          mysql::id_string >::set_image (
+        i.pub_Y_value,
+        size,
+        is_null,
+        v);
+      i.pub_Y_null = is_null;
+      i.pub_Y_size = static_cast<unsigned long> (size);
+      grew = grew || (cap != i.pub_Y_value.capacity ());
     }
 
     return grew;
   }
 
-  void access::object_traits_impl< ::system_info, id_mysql >::
+  void access::object_traits_impl< ::sm2_key_info, id_mysql >::
   init (object_type& o,
         const image_type& i,
         database* db)
@@ -203,99 +337,161 @@ namespace odb
     ODB_POTENTIALLY_UNUSED (i);
     ODB_POTENTIALLY_UNUSED (db);
 
-    // conf_key_
+    // key_id_
     //
     {
-      ::std::string& v =
-        o.conf_key_;
+      int& v =
+        o.key_id_;
 
       mysql::value_traits<
-          ::std::string,
-          mysql::id_string >::set_value (
+          int,
+          mysql::id_long >::set_value (
         v,
-        i.conf_key_value,
-        i.conf_key_size,
-        i.conf_key_null);
+        i.key_id_value,
+        i.key_id_null);
     }
 
-    // conf_value_
+    // key_purpose_
+    //
+    {
+      int& v =
+        o.key_purpose_;
+
+      mysql::value_traits<
+          int,
+          mysql::id_long >::set_value (
+        v,
+        i.key_purpose_value,
+        i.key_purpose_null);
+    }
+
+    // key_mod_
+    //
+    {
+      int& v =
+        o.key_mod_;
+
+      mysql::value_traits<
+          int,
+          mysql::id_long >::set_value (
+        v,
+        i.key_mod_value,
+        i.key_mod_null);
+    }
+
+    // pri_D_
     //
     {
       ::std::string& v =
-        o.conf_value_;
+        o.pri_D_;
 
       mysql::value_traits<
           ::std::string,
           mysql::id_string >::set_value (
         v,
-        i.conf_value_value,
-        i.conf_value_size,
-        i.conf_value_null);
+        i.pri_D_value,
+        i.pri_D_size,
+        i.pri_D_null);
+    }
+
+    // pub_X_
+    //
+    {
+      ::std::string& v =
+        o.pub_X_;
+
+      mysql::value_traits<
+          ::std::string,
+          mysql::id_string >::set_value (
+        v,
+        i.pub_X_value,
+        i.pub_X_size,
+        i.pub_X_null);
+    }
+
+    // pub_Y_
+    //
+    {
+      ::std::string& v =
+        o.pub_Y_;
+
+      mysql::value_traits<
+          ::std::string,
+          mysql::id_string >::set_value (
+        v,
+        i.pub_Y_value,
+        i.pub_Y_size,
+        i.pub_Y_null);
     }
   }
 
-  void access::object_traits_impl< ::system_info, id_mysql >::
+  void access::object_traits_impl< ::sm2_key_info, id_mysql >::
   init (id_image_type& i, const id_type& id)
   {
-    bool grew (false);
     {
       bool is_null (false);
-      std::size_t size (0);
-      std::size_t cap (i.id_value.capacity ());
       mysql::value_traits<
-          ::std::string,
-          mysql::id_string >::set_image (
-        i.id_value,
-        size,
-        is_null,
-        id);
+          int,
+          mysql::id_long >::set_image (
+        i.id_value, is_null, id);
       i.id_null = is_null;
-      i.id_size = static_cast<unsigned long> (size);
-      grew = grew || (cap != i.id_value.capacity ());
     }
-
-    if (grew)
-      i.version++;
   }
 
-  const char access::object_traits_impl< ::system_info, id_mysql >::persist_statement[] =
-  "INSERT INTO `system_info` "
-  "(`conf_key`, "
-  "`conf_value`) "
+  const char access::object_traits_impl< ::sm2_key_info, id_mysql >::persist_statement[] =
+  "INSERT INTO `sm2_key_info` "
+  "(`key_id`, "
+  "`key_purpose`, "
+  "`key_mod`, "
+  "`pri_D`, "
+  "`pub_X`, "
+  "`pub_Y`) "
   "VALUES "
-  "(?, ?)";
+  "(?, ?, ?, ?, ?, ?)";
 
-  const char access::object_traits_impl< ::system_info, id_mysql >::find_statement[] =
+  const char access::object_traits_impl< ::sm2_key_info, id_mysql >::find_statement[] =
   "SELECT "
-  "`system_info`.`conf_key`, "
-  "`system_info`.`conf_value` "
-  "FROM `system_info` "
-  "WHERE `system_info`.`conf_key`=?";
+  "`sm2_key_info`.`key_id`, "
+  "`sm2_key_info`.`key_purpose`, "
+  "`sm2_key_info`.`key_mod`, "
+  "`sm2_key_info`.`pri_D`, "
+  "`sm2_key_info`.`pub_X`, "
+  "`sm2_key_info`.`pub_Y` "
+  "FROM `sm2_key_info` "
+  "WHERE `sm2_key_info`.`key_id`=?";
 
-  const char access::object_traits_impl< ::system_info, id_mysql >::update_statement[] =
-  "UPDATE `system_info` "
+  const char access::object_traits_impl< ::sm2_key_info, id_mysql >::update_statement[] =
+  "UPDATE `sm2_key_info` "
   "SET "
-  "`conf_value`=? "
-  "WHERE `conf_key`=?";
+  "`key_purpose`=?, "
+  "`key_mod`=?, "
+  "`pri_D`=?, "
+  "`pub_X`=?, "
+  "`pub_Y`=? "
+  "WHERE `key_id`=?";
 
-  const char access::object_traits_impl< ::system_info, id_mysql >::erase_statement[] =
-  "DELETE FROM `system_info` "
-  "WHERE `conf_key`=?";
+  const char access::object_traits_impl< ::sm2_key_info, id_mysql >::erase_statement[] =
+  "DELETE FROM `sm2_key_info` "
+  "WHERE `key_id`=?";
 
-  const char access::object_traits_impl< ::system_info, id_mysql >::query_statement[] =
+  const char access::object_traits_impl< ::sm2_key_info, id_mysql >::query_statement[] =
   "SELECT "
-  "`system_info`.`conf_key`, "
-  "`system_info`.`conf_value` "
-  "FROM `system_info`";
+  "`sm2_key_info`.`key_id`, "
+  "`sm2_key_info`.`key_purpose`, "
+  "`sm2_key_info`.`key_mod`, "
+  "`sm2_key_info`.`pri_D`, "
+  "`sm2_key_info`.`pub_X`, "
+  "`sm2_key_info`.`pub_Y` "
+  "FROM `sm2_key_info`";
 
-  const char access::object_traits_impl< ::system_info, id_mysql >::erase_query_statement[] =
-  "DELETE FROM `system_info`";
+  const char access::object_traits_impl< ::sm2_key_info, id_mysql >::erase_query_statement[] =
+  "DELETE FROM `sm2_key_info`";
 
-  const char access::object_traits_impl< ::system_info, id_mysql >::table_name[] =
-  "`system_info`";
+  const char access::object_traits_impl< ::sm2_key_info, id_mysql >::table_name[] =
+  "`sm2_key_info`";
 
-  void access::object_traits_impl< ::system_info, id_mysql >::
-  persist (database& db, const object_type& obj)
+  void access::object_traits_impl< ::sm2_key_info, id_mysql >::
+  persist (database& db, object_type& obj)
   {
     ODB_POTENTIALLY_UNUSED (db);
 
@@ -307,7 +503,7 @@ namespace odb
       conn.statement_cache ().find_object<object_type> ());
 
     callback (db,
-              obj,
+              static_cast<const object_type&> (obj),
               callback_event::pre_persist);
 
     image_type& im (sts.image ());
@@ -315,6 +511,8 @@ namespace odb
 
     if (init (im, obj, statement_insert))
       im.version++;
+
+    im.key_id_value = 0;
 
     if (im.version != sts.insert_image_version () ||
         imb.version == 0)
@@ -324,16 +522,29 @@ namespace odb
       imb.version++;
     }
 
+    {
+      id_image_type& i (sts.id_image ());
+      binding& b (sts.id_image_binding ());
+      if (i.version != sts.id_image_version () || b.version == 0)
+      {
+        bind (b.bind, i);
+        sts.id_image_version (i.version);
+        b.version++;
+      }
+    }
+
     insert_statement& st (sts.persist_statement ());
     if (!st.execute ())
       throw object_already_persistent ();
 
+    obj.key_id_ = id (sts.id_image ());
+
     callback (db,
-              obj,
+              static_cast<const object_type&> (obj),
               callback_event::post_persist);
   }
 
-  void access::object_traits_impl< ::system_info, id_mysql >::
+  void access::object_traits_impl< ::sm2_key_info, id_mysql >::
   update (database& db, const object_type& obj)
   {
     ODB_POTENTIALLY_UNUSED (db);
@@ -349,7 +560,7 @@ namespace odb
       conn.statement_cache ().find_object<object_type> ());
 
     const id_type& id (
-      obj.conf_key_);
+      obj.key_id_);
     id_image_type& idi (sts.id_image ());
     init (idi, id);
 
@@ -394,7 +605,7 @@ namespace odb
     pointer_cache_traits::update (db, obj);
   }
 
-  void access::object_traits_impl< ::system_info, id_mysql >::
+  void access::object_traits_impl< ::sm2_key_info, id_mysql >::
   erase (database& db, const id_type& id)
   {
     using namespace mysql;
@@ -423,8 +634,8 @@ namespace odb
     pointer_cache_traits::erase (db, id);
   }
 
-  access::object_traits_impl< ::system_info, id_mysql >::pointer_type
-  access::object_traits_impl< ::system_info, id_mysql >::
+  access::object_traits_impl< ::sm2_key_info, id_mysql >::pointer_type
+  access::object_traits_impl< ::sm2_key_info, id_mysql >::
   find (database& db, const id_type& id)
   {
     using namespace mysql;
@@ -479,7 +690,7 @@ namespace odb
     return p;
   }
 
-  bool access::object_traits_impl< ::system_info, id_mysql >::
+  bool access::object_traits_impl< ::sm2_key_info, id_mysql >::
   find (database& db, const id_type& id, object_type& obj)
   {
     using namespace mysql;
@@ -512,7 +723,7 @@ namespace odb
     return true;
   }
 
-  bool access::object_traits_impl< ::system_info, id_mysql >::
+  bool access::object_traits_impl< ::sm2_key_info, id_mysql >::
   reload (database& db, object_type& obj)
   {
     using namespace mysql;
@@ -525,7 +736,7 @@ namespace odb
     statements_type::auto_lock l (sts);
 
     const id_type& id  (
-      obj.conf_key_);
+      obj.key_id_);
 
     if (!find_ (sts, &id))
       return false;
@@ -542,7 +753,7 @@ namespace odb
     return true;
   }
 
-  bool access::object_traits_impl< ::system_info, id_mysql >::
+  bool access::object_traits_impl< ::sm2_key_info, id_mysql >::
   find_ (statements_type& sts,
          const id_type* id)
   {
@@ -593,8 +804,8 @@ namespace odb
     return r != select_statement::no_data;
   }
 
-  result< access::object_traits_impl< ::system_info, id_mysql >::object_type >
-  access::object_traits_impl< ::system_info, id_mysql >::
+  result< access::object_traits_impl< ::sm2_key_info, id_mysql >::object_type >
+  access::object_traits_impl< ::sm2_key_info, id_mysql >::
   query (database&, const query_base_type& q)
   {
     using namespace mysql;
@@ -644,7 +855,7 @@ namespace odb
     return result<object_type> (r);
   }
 
-  unsigned long long access::object_traits_impl< ::system_info, id_mysql >::
+  unsigned long long access::object_traits_impl< ::sm2_key_info, id_mysql >::
   erase_query (database&, const query_base_type& q)
   {
     using namespace mysql;
