@@ -9,7 +9,6 @@
 #include <cassert>
 #include <cstring>  // std::memcpy
 
-
 #include <odb/mysql/traits.hxx>
 #include <odb/mysql/database.hxx>
 #include <odb/mysql/transaction.hxx>

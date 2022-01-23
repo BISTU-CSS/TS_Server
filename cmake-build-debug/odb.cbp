@@ -82,37 +82,28 @@
 				</MakeCommands>
 			</Target>
 		</Build>
-		<Unit filename="/home/wc/Project/C++/tsaodb/main.cpp">
+		<Unit filename="/home/wc/Project/C++/tsaodb/example.cpp">
 			<Option target="odb"/>
 		</Unit>
-		<Unit filename="/home/wc/Project/C++/tsaodb/persistent/sm2_key_info-odb.cxx">
+		<Unit filename="/home/wc/Project/C++/tsaodb/src/timestamp/persistent/sm2_key_info-odb.cxx">
 			<Option target="odb"/>
 		</Unit>
-		<Unit filename="/home/wc/Project/C++/tsaodb/persistent/sm2_key_info-odb.hxx">
+		<Unit filename="/home/wc/Project/C++/tsaodb/src/timestamp/persistent/sm2_key_info-odb.hxx">
 			<Option target="odb"/>
 		</Unit>
-		<Unit filename="/home/wc/Project/C++/tsaodb/persistent/system_info-odb.cxx">
+		<Unit filename="/home/wc/Project/C++/tsaodb/src/timestamp/persistent/system_info-odb.cxx">
 			<Option target="odb"/>
 		</Unit>
-		<Unit filename="/home/wc/Project/C++/tsaodb/persistent/system_info-odb.hxx">
+		<Unit filename="/home/wc/Project/C++/tsaodb/src/timestamp/persistent/system_info-odb.hxx">
 			<Option target="odb"/>
 		</Unit>
-		<Unit filename="/home/wc/Project/C++/tsaodb/persistent/timestamp_log-odb.cxx">
+		<Unit filename="/home/wc/Project/C++/tsaodb/src/timestamp/persistent/timestamp_log-odb.cxx">
 			<Option target="odb"/>
 		</Unit>
-		<Unit filename="/home/wc/Project/C++/tsaodb/persistent/timestamp_log-odb.hxx">
+		<Unit filename="/home/wc/Project/C++/tsaodb/src/timestamp/persistent/timestamp_log-odb.hxx">
 			<Option target="odb"/>
 		</Unit>
-		<Unit filename="/home/wc/Project/C++/tsaodb/thread/BaseThread.cpp">
-			<Option target="odb"/>
-		</Unit>
-		<Unit filename="/home/wc/Project/C++/tsaodb/thread/BaseThread.h">
-			<Option target="odb"/>
-		</Unit>
-		<Unit filename="/home/wc/Project/C++/tsaodb/thread/transaction_test_thread.h">
-			<Option target="odb"/>
-		</Unit>
-		<Unit filename="/home/wc/Project/C++/tsaodb/utils/entity_output.cpp">
+		<Unit filename="/home/wc/Project/C++/tsaodb/src/timestamp/utils/entity_output.cpp">
 			<Option target="odb"/>
 		</Unit>
 		<Unit filename="/home/wc/Project/C++/tsaodb/CMakeLists.txt">

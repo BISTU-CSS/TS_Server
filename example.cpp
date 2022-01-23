@@ -4,21 +4,20 @@
 #include <memory>
 
 //导入实体类定义
-#include "entities/sm2_key_info.h"
-#include "entities/system_info.h"
-#include "entities/timestamp_log.h"
+#include "src/timestamp/entities/sm2_key_info.h"
+#include "src/timestamp/entities/system_info.h"
+#include "src/timestamp/entities/timestamp_log.h"
 
 //导入数据库支持操作
-#include "persistent/sm2_key_info-odb.hxx"
-#include "persistent/system_info-odb.hxx"
-#include "persistent/timestamp_log-odb.hxx"
+#include "src/timestamp/persistent/sm2_key_info-odb.hxx"
+#include "src/timestamp/persistent/system_info-odb.hxx"
+#include "src/timestamp/persistent/timestamp_log-odb.hxx"
 
 //数据库事务支持
 #include <odb/transaction.hxx>
 
 //导入数据库封装（主要使用其中的接口编程）
-#include "database_wrapper/database_wrapper.h"
-
+#include "src/timestamp/database_wrapper/database_wrapper.h"
 
 using namespace std;
 using namespace odb::core;
@@ -28,7 +27,7 @@ using namespace odb::core;
  * @param db
  */
 void
-create_system_info(database_wrapper *db) {
+create_system_info(const database_wrapper *db) {
     //操作必须在事务中进行
     auto t = db->begin();
     db->create_schema("CREATE TABLE if not exists system_info(\n"
@@ -43,7 +42,7 @@ create_system_info(database_wrapper *db) {
  * @param db
  */
 void
-insert_one_app_assign_id(database_wrapper *db) {
+insert_one_app_assign_id(const database_wrapper *db) {
     auto t = db->begin();
     //由于system_info表的由程序员管理，所以插入数据时需要确保主键不存在，否抛异常
     auto one = db->query_one_by_condition<system_info>(query<system_info>::conf_key == "key");
@@ -59,7 +58,7 @@ insert_one_app_assign_id(database_wrapper *db) {
  * @param db
  */
 void
-delete_conditional(database_wrapper *db) {
+delete_conditional(const database_wrapper *db) {
     auto t = db->begin();
     //返回删除的记录条数
     cout << db->delete_by_condition<system_info>(odb::query<system_info>::conf_key == "key2") << endl;
@@ -71,7 +70,7 @@ delete_conditional(database_wrapper *db) {
  * @param db
  */
 void
-query_by_condition(database_wrapper *db) {
+query_by_condition(const database_wrapper *db) {
     auto t = db->begin();
     //传入odb::query对象，代表查询条件
     auto list = db->query_by_condition<system_info>(odb::query<system_info>::conf_key == "key4");
@@ -87,7 +86,7 @@ query_by_condition(database_wrapper *db) {
  * @param db
  */
 void
-query_one(database_wrapper *db) {
+query_one(const database_wrapper *db) {
     auto t = db->begin();
     //用于已知记录只有一条，若结果不等于1条，返回nullptr
     auto one = db->query_one_by_condition<system_info>(odb::query<system_info>::conf_key == "key4");
@@ -105,7 +104,7 @@ query_one(database_wrapper *db) {
   */
 template<typename T>
 void
-query_all(database_wrapper *db) {
+query_all(const database_wrapper *db) {
     //query all
     auto t = db->begin();
     auto list = db->query_all<T>();
@@ -122,7 +121,7 @@ query_all(database_wrapper *db) {
  * @param db
  */
 void
-update_by_pri_key(database_wrapper *db) {
+update_by_pri_key(const database_wrapper *db) {
     //update by pri key
     auto t = db->begin();
     system_info systemInfo("key5", "");
@@ -138,7 +137,7 @@ update_by_pri_key(database_wrapper *db) {
 }
 
 void
-create_sm2_key_info(database_wrapper *db) {
+create_sm2_key_info(const database_wrapper *db) {
     auto t = db->begin();
     db->create_schema("CREATE TABLE if not exists sm2_key_info(\n"
                       "key_id INT PRIMARY KEY AUTO_INCREMENT COMMENT '自增索引', \n"
@@ -151,7 +150,7 @@ create_sm2_key_info(database_wrapper *db) {
     t->commit();
 }
 
-void create_timestamp_log(database_wrapper *db) {
+void create_timestamp_log(const database_wrapper *db) {
     auto t = db->begin();
     db->create_schema("CREATE TABLE if not exists timestamp_log (\n"
                       "id INT PRIMARY KEY AUTO_INCREMENT COMMENT '索引', \n"
@@ -167,7 +166,7 @@ void create_timestamp_log(database_wrapper *db) {
 
 
 void
-insert_bulk_db_assign_id(database_wrapper *db) {
+insert_bulk_db_assign_id(const database_wrapper *db) {
     sm2_key_info sm2KeyInfo1(9345, 3, "j;aosdjfjaskdf", "hguandlfa", "jfanjskl;djfi;oajsdlf");
     sm2_key_info sm2KeyInfo2(983, 2, "jahsdfka", "hkjgsndfja", "hjlskdfnja");
     sm2_key_info sm2KeyInfo3(43, 6, "ashdfa;lsdf", "hualwjnfkljas", "hvbsdjkfna");
@@ -179,7 +178,6 @@ insert_bulk_db_assign_id(database_wrapper *db) {
     db->persist<sm2_key_info>(sm2KeyInfo4);
     t->commit();
 }
-
 
 void
 test_wrapper() {

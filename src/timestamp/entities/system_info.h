@@ -9,10 +9,8 @@
 #include <odb/core.hxx>
 #include "iostream"
 
-
 #pragma db object
-class system_info
-{
+class system_info {
 public:
     system_info (const std::string& conf_key,
             const std::string& conf_value

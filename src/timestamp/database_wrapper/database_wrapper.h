@@ -79,7 +79,7 @@ public:
      */
     template<typename T>
     shared_ptr<std::vector<shared_ptr<T>>>
-    query_all();
+    query_all () const;
 
     /**
      * 保存对象到数据库中。
@@ -88,7 +88,7 @@ public:
      */
     template<typename T>
     void
-    persist(T &entity);
+    persist(T &entity) const;
 
     /**
      * 条件删除
@@ -98,7 +98,7 @@ public:
      */
     template<typename T>
     unsigned long long
-    delete_by_condition(const odb::query<T> &condition);
+    delete_by_condition(const odb::query<T> &condition) const;
 
     /**
      * 条件查询
@@ -108,7 +108,7 @@ public:
      */
     template<typename T>
     shared_ptr<vector<shared_ptr<T>>>
-    query_by_condition(const odb::query<T> &condition);
+    query_by_condition(const odb::query<T> &condition) const;
 
     /**
      * 查询一条记录，如果已知查询条件只能查到一条记录，比如使用主键查询，可以使用该函数。
@@ -118,7 +118,7 @@ public:
      */
     template<typename T>
     shared_ptr<T>
-    query_one_by_condition(const odb::query<T> &condition);
+    query_one_by_condition(const odb::query<T> &condition) const;
 
     /**
      *
@@ -127,14 +127,14 @@ public:
      */
     template<typename T>
     void
-    update_by_pri_key(const T &entity);
+    update_by_pri_key(const T &entity) const;
 
     /**
      * 开始事务，如果事务执行过程中抛出异常，事务自动结束。
      * @return 返回odb::transaction对象的指针，该指针由用户保存，并由用户手动关闭事务。
      */
     shared_ptr<odb::transaction>
-    begin();
+    begin() const;
 
     /**
      * 创建数据库表
@@ -142,7 +142,7 @@ public:
      * @return 成功返回1，否则返回0
      */
     unsigned long long
-    create_schema (const string& create_statement);
+    create_schema (const string& create_statement) const;
 
      /**
       * 执行自定义的sql语句。
@@ -150,7 +150,7 @@ public:
       * @return 返回影响的记录条数。
       */
     unsigned long long
-    execute(const char* statement);
+    execute(const char* statement) const;
 
     /**
       * 执行自定义的sql语句。
@@ -158,7 +158,7 @@ public:
       * @return 返回影响的记录条数。
       */
     unsigned long long
-    execute(const string& statement);
+    execute(const string& statement) const;
 };
 
 const database_wrapper*
@@ -204,7 +204,7 @@ delete_instance() {
 template<typename T>
 shared_ptr<std::vector<shared_ptr<T>>>
 database_wrapper::
-query_all() {
+query_all() const {
     odb::result<T> r(db->query<T>(false));
 
     shared_ptr<std::vector<shared_ptr<T>>> all_records(new std::vector<shared_ptr<T>>);
@@ -219,14 +219,14 @@ query_all() {
 template<typename T>
 void
 database_wrapper::
-persist(T &entity) {
+persist(T &entity) const {
     db->persist(entity);
 }
 
 template<typename T>
 unsigned long long
 database_wrapper::
-delete_by_condition(const odb::query<T> &condition) {
+delete_by_condition(const odb::query<T> &condition) const {
     unsigned long long deleted_count;
 
     deleted_count = db->erase_query<T>(condition);
@@ -237,7 +237,7 @@ delete_by_condition(const odb::query<T> &condition) {
 template<typename T>
 shared_ptr<vector<shared_ptr<T>>>
 database_wrapper::
-query_by_condition(const odb::query<T> &condition) {
+query_by_condition(const odb::query<T> &condition) const {
     odb::result<T> r(db->query<T>(condition));
 
     shared_ptr<std::vector<shared_ptr<T>>> conditional_records(new std::vector<shared_ptr<T>>());
@@ -252,7 +252,7 @@ query_by_condition(const odb::query<T> &condition) {
 template<typename T>
 shared_ptr<T>
 database_wrapper::
-query_one_by_condition(const odb::query<T> &condition) {
+query_one_by_condition(const odb::query<T> &condition) const {
 
     auto conditional_results = query_by_condition(condition);
 
@@ -266,31 +266,31 @@ query_one_by_condition(const odb::query<T> &condition) {
 template<typename T>
 void
 database_wrapper::
-update_by_pri_key(const T &entity) {
+update_by_pri_key(const T &entity) const {
     db->update(entity);
 }
 
 unsigned long long
 database_wrapper::
-execute(const char* statement) {
+execute(const char* statement) const {
     return db->execute(statement);
 }
 
 unsigned long long
 database_wrapper::
-execute(const std::string& statement) {
+execute(const std::string& statement) const {
     return db->execute(statement);
 }
 
 shared_ptr<odb::transaction>
 database_wrapper::
-begin() {
+begin() const {
     return std::make_shared<odb::transaction>(db->begin());
 }
 
 unsigned long long
 database_wrapper::
-create_schema (const string& create_statement) {
+create_schema (const string& create_statement) const {
     return execute(create_statement);
 }
 
