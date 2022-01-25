@@ -45,8 +45,8 @@ public:
 private:
   // session_pool结构体
   common::HandlePool<uint64_t> handle_pool_;
-  common::HandlePoolConfig config_{static_cast<size_t>(1e4),
-                                   static_cast<size_t>(1e4)};
+  common::HandlePoolConfig config_{static_cast<size_t>(1e7),
+                                   static_cast<size_t>(1e7)};
 };
 
 std::unique_ptr<SessionManager> SessionManager::make() {
