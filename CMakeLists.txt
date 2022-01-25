@@ -28,7 +28,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC ${PROJECT_BINARY_DIR})
 target_include_directories(${PROJECT_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include)
 target_include_directories(${PROJECT_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/src)
 
-target_link_libraries(${PROJECT_NAME} PUBLIC fmt)
+target_link_libraries(${PROJECT_NAME} PUBLIC timestamp_common fmt)
 
 add_subdirectory(sample)
 
