@@ -86,14 +86,14 @@ void InitEnvironmentCall::Proceed()
     new InitEnvironmentCall(service_, cq_);
 
     // The actual processing.
-    std::string prefix("Hello ");
     //reply_.set_message(prefix + request_.name());
 
-    timestamp::Status *ts_status = new grpc::Status;
+    timestamp::Handle *handle = new timestamp::Handle;
 
-    ts_status->set_msg("hello");
-    ts_status->set_code(static_cast<timestamp::ErrCode>(0));
-    reply_.set_allocated_status(ts_status);
+    handle->set_session_id(18);
+    reply_.set_code(ResponseStatus_MIN);
+    reply_.set_allocated_handle(handle);
+
     // And we are done! Let the gRPC runtime know we've finished, using the
     // memory address of this instance as the uniquely identifying tag for
     // the event.
@@ -290,12 +290,4 @@ void GetTSDetailCall::Proceed()
     // Once in the FINISH state, deallocate ourselves (CallData).
     delete this;
   }
-}
-
-int main(int argc, char** argv) {
-  TimeStampServer service;
-
-  service.Run();
-
-  return 0;
 }
