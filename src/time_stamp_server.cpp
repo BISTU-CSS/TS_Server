@@ -43,8 +43,8 @@ private:
   bool get_time_ctx() { return true; }
 
 private:
- // uint8_t source_type = 0; // 0表示使用系统的板卡进行时间戳
-                           // 1表示使用NTP可信时间源进行时间校准 2表示使用
+  // uint8_t source_type = 0; // 0表示使用系统的板卡进行时间戳
+  // 1表示使用NTP可信时间源进行时间校准 2表示使用
 };
 
 std::unique_ptr<TimestampServer> TimestampServer::make() {

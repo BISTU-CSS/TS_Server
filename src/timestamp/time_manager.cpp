@@ -18,9 +18,7 @@ public:
 
   void reload_time() override {}
 
-  std::string get_time() override {
-    return get_time_from_unix_utc();
-  }
+  std::string get_time() override { return get_time_from_unix_utc(); }
 
 private:
   std::string get_time_from_unix_utc() {

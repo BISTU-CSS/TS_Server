@@ -40,9 +40,7 @@ public:
     return false;
   }
 
-  bool cleanup_session() override {
-    return handle_pool_.empty();
-  }
+  bool cleanup_session() override { return handle_pool_.empty(); }
 
 private:
   // session_pool结构体
