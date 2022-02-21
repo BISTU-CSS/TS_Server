@@ -1,5 +1,12 @@
 #include "time_manager.h"
-#include "time.h"
+
+#include "common/exception.h"
+#include "ndsec_ts_error.h"
+#include "time_adaptor.h"
+
+#include <sys/time.h>
+
+#include <glog/logging.h>
 
 namespace ndsec::timetool {
 
@@ -11,26 +18,19 @@ public:
 
   void reload_time() override {}
 
-  std::string get_time(TimeType type) override {
-    switch (type) {
-    case TimeType::UTC:
-      return get_time_from_unix_utc();
-    case TimeType::UTC8:
-      return get_time_from_unix_utc8();
-    default:
-      return "";
-    }
-  }
+  std::string get_time() override { return get_time_from_unix_utc(); }
 
 private:
   std::string get_time_from_unix_utc() {
-    time(&now);
-    return time_adaptor_->utc_format(time_adaptor_->unix_to_utc(now));
+    gettimeofday(&timecc, nullptr);
+    return time_adaptor_->utc_format(
+        time_adaptor_->unix_to_utc(timecc.tv_sec, timecc.tv_usec));
   }
 
   std::string get_time_from_unix_utc8() {
-    time(&now);
-    return time_adaptor_->utc_format(time_adaptor_->unix32_to_UTC_beijing(now));
+    gettimeofday(&timecc, nullptr);
+    return time_adaptor_->utc_format(
+        time_adaptor_->unix32_to_UTC_beijing(timecc.tv_sec, timecc.tv_usec));
   }
 
   std::string get_time_from_clock() { return ""; }
@@ -39,7 +39,7 @@ private:
 
 private:
   std::unique_ptr<timetool::TimeAdaptor> time_adaptor_;
-  time_t now{};
+  struct timeval timecc {};
 };
 
 std::unique_ptr<TimeManager> TimeManager::make() {

@@ -22,15 +22,18 @@ public:
 #define EVERY_4YEARS_DAYS (NONLEAP_YEAR_DAYS * 3 + LEAP_YEAR_DAYS)
 #define ARRAY_SIZE(array) (sizeof(array) / sizeof((array)[0]))
 
-  UTC_TIME unix32_to_UTC_beijing(const time_t &unix_time) override {
-    return unix_to_utc(unix_time + UTC_BEIJING_OFFSET_SECONDS);
+  UTC_TIME unix32_to_UTC_beijing(const time_t &unix_time,
+                                 const __suseconds_t micro_seconds) override {
+    return unix_to_utc(unix_time + UTC_BEIJING_OFFSET_SECONDS, micro_seconds);
   }
 
-  UTC_TIME unix_to_utc(const time_t &unix_time) override {
+  UTC_TIME unix_to_utc(const time_t &unix_time,
+                       const __suseconds_t micro_seconds) override {
     unsigned char days_per_month[12] = {
         /*1   2   3   4   5   6   7   8   9   10  11  12*/
         31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
-    struct UTC_TIME utc = {0, 0, 0, 0, 0, 0, false, 0};
+    struct UTC_TIME utc = {0, 0, 0,    0,
+                           0, 0, true, static_cast<uint64_t>(micro_seconds)};
     unsigned int pass_days, pass_days_cnt, pass_days_cnt_next;
     unsigned char pass_4years_cnt;
     unsigned short basic_4multiple_year;

@@ -1,44 +1,52 @@
 #include "session_manager.h"
 
-#include <boost/unordered_map.hpp>
-#include <openssl/rand.h>
+#include "common/handle_pool.h"
 
 namespace ndsec::stf::session {
 
 class SessionManagerImpl : public SessionManager {
 public:
-  bool is_session_exist(uint32_t session) override {
-    if (session_map_.find(session) == session_map_.end()) {
-      return false;
-    }
-    return true;
+  SessionManagerImpl()
+      : handle_pool_{config_, [](const uint64_t *p) { delete p; }} {
+    handle_pool_.garbage_collect_loop();
   }
 
-  uint32_t get_session() override {
-    // generate random
-
-    // check random is/not exist
-
-    // put the random into the session map
-
-    return 0;
-  }
-
-  bool free_session(uint32_t session) override {
-    if (session_map_.erase(session)) {
+  bool is_session_exist(uint64_t session) override {
+    auto *session_pointer =
+        reinterpret_cast<uint64_t *>(static_cast<uintptr_t>(session));
+    if (handle_pool_.find(session_pointer)) {
       return true;
     }
     return false;
   }
 
-  bool cleanup_session() override {
-    session_map_.clear();
-    return true;
+  uint64_t get_session() override {
+    // generate random
+    auto x = new uint64_t{1};
+    uint8_t xww[16];
+    uint64_t z;
+    handle_pool_.push(x);
+    sprintf(reinterpret_cast<char *>(xww), "%p", x);
+    sscanf(reinterpret_cast<const char *>(xww), "%lx", &z);
+    return z;
   }
+
+  bool free_session(uint64_t session) override {
+    auto *a = reinterpret_cast<uint64_t *>(static_cast<uintptr_t>(session));
+    if (handle_pool_.find(a)) {
+      handle_pool_.erase(a);
+      return true;
+    }
+    return false;
+  }
+
+  bool cleanup_session() override { return handle_pool_.empty(); }
 
 private:
   // session_pool结构体
-  std::unordered_map<uint32_t, bool> session_map_;
+  common::HandlePool<uint64_t> handle_pool_;
+  common::HandlePoolConfig config_{static_cast<size_t>(1e7),
+                                   static_cast<size_t>(1e7)};
 };
 
 std::unique_ptr<SessionManager> SessionManager::make() {
