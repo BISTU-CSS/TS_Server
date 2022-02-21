@@ -1,7 +1,6 @@
 project(ndsec_stf_server_sample)
 
 add_sample(stf_server timestamp_server)
-add_sample(time_synchronization clock_process)
 add_sample(grpc_server timestamp_server)
 add_sample(time_synchronization timestamp_server)
 add_sample(log_test timestamp_server)
