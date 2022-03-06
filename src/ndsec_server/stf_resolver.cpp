@@ -1,23 +1,10 @@
 #include "stf_resolver.h"
 
-#include "time_stamp_server.h"
 #include "grpc_cs/greeter_server.h"
+
 using namespace timestamp;
 
-//处理GRPC任务
-//namespace ndsec::stf {
-//
-//// grpc_muti_process
-//
-//class RpcServer {
-//};
-//
-//class Resolver {
-//  private:
-//    std::unique_ptr<TimestampServer> time_server_;
-//  };
-//
-//} // namespace ndsec::stf
+
 void TimeStampServer::Run() {
   std::string server_address("0.0.0.0:50051");
 
