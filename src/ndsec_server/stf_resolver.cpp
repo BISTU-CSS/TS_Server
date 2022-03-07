@@ -93,7 +93,7 @@ void InitEnvironmentCall::Proceed()
 
     std::cout<<a<<std::endl;
 
-    reply_.set_code(ResponseStatus_MIN);
+    reply_.set_code(timestamp::GRPC_STF_TS_OK);
     reply_.set_allocated_handle(handle);
 
     // And we are done! Let the gRPC runtime know we've finished, using the
@@ -119,7 +119,7 @@ void ClearEnvironmentCall::Proceed()
     uint64_t session_handle = request_.handle().session_id();
     if(session_pool->is_session_exist(session_handle)){
       session_pool->free_session(session_handle);
-      reply_.set_code(ResponseStatus_MIN);
+      reply_.set_code(timestamp::GRPC_STF_TS_OK);
     }else{
       reply_.set_code(timestamp::GRPC_STF_TS_INVALID_REQUEST);    //非法的申请
     }
@@ -163,7 +163,7 @@ void CreateTSRequestCall::Proceed()
       std::string package = "dsadsa";
       reply_.set_puctsrequest(package);
       reply_.set_puctsrequestlength(package.length());
-      reply_.set_code(ResponseStatus_MIN);
+      reply_.set_code(timestamp::GRPC_STF_TS_OK);
     }else{
       reply_.set_code(timestamp::GRPC_STF_TS_INVALID_REQUEST);    //非法的申请
     }
@@ -208,7 +208,7 @@ void CreateTSResponseCall::Proceed()
       std::string time = time_manager->get_time();
       //reply_.set_puitsresponse();
       //reply_.set_puitsresponselength();
-      reply_.set_code(ResponseStatus_MIN);
+      reply_.set_code(timestamp::GRPC_STF_TS_OK);
     }else{
       reply_.set_code(timestamp::GRPC_STF_TS_INVALID_REQUEST);    //非法的申请
     }
@@ -236,7 +236,7 @@ void VerifyTSValidityCall::Proceed()
 
 
 
-      reply_.set_code(ResponseStatus_MIN);
+      reply_.set_code(timestamp::GRPC_STF_TS_OK);
     }else{
       reply_.set_code(timestamp::GRPC_STF_TS_INVALID_REQUEST);    //非法的申请
     }
@@ -265,7 +265,7 @@ void GetTSInfoCall::Proceed()
 
       reply_.set_allocated_pucissuername(TSA_ISSUENAME);
 
-      reply_.set_code(ResponseStatus_MIN);
+      reply_.set_code(timestamp::GRPC_STF_TS_OK);
     }else{
       reply_.set_code(timestamp::GRPC_STF_TS_INVALID_REQUEST);    //非法的申请
     }
@@ -293,7 +293,7 @@ void GetTSDetailCall::Proceed()
 
 
 
-      reply_.set_code(ResponseStatus_MIN);
+      reply_.set_code(timestamp::GRPC_STF_TS_OK);
     }else{
       reply_.set_code(timestamp::GRPC_STF_TS_INVALID_REQUEST);    //非法的申请
     }
