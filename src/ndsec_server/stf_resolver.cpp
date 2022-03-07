@@ -1,9 +1,24 @@
-#include "stf_resolver.h"
-
 #include "grpc_cs/greeter_server.h"
+
+#include "session_manager.h"
+#include "ndsec_ts_error.h"
+#include "time_manager.h"
+
+#include "openssl/ts.h"
+
+#define SGD_SM3_RSA 0x00010001
+#define SGD_SHA1_RSA 0x00010002
+#define SGD_SHA256_RSA 0x00010004
+#define SGD_SM3_SM2 0x00020201
+
+#define SGD_SM3 0x00000001
+#define SGD_SHA1 0x00000002
+#define SGD_SHA256 0x00000004
 
 using namespace timestamp;
 
+auto session_pool = ndsec::stf::session::SessionManager::make();
+auto time_manager = ndsec::timetool::TimeManager::make();
 
 void TimeStampServer::Run() {
   std::string server_address("0.0.0.0:50051");
@@ -19,7 +34,6 @@ void TimeStampServer::Run() {
   cq_ = builder.AddCompletionQueue();
   // Finally assemble the server.
   server_ = builder.BuildAndStart();
-  std::cout << "Server listening on " << server_address << std::endl;
 
   // Proceed to the server's main loop.
   HandleRpcs();
@@ -49,7 +63,6 @@ void TimeStampServer::HandleRpcs() {
   }
 }
 
-
 void InitEnvironmentCall::Proceed()
 {
   if (status_ == CREATE) {
@@ -74,9 +87,12 @@ void InitEnvironmentCall::Proceed()
     // The actual processing.
     //reply_.set_message(prefix + request_.name());
 
-    timestamp::Handle *handle = new timestamp::Handle;
+    auto *handle = new timestamp::Handle;
+    uint64_t a = session_pool->get_session();
+    handle->set_session_id(a);
 
-    handle->set_session_id(18);
+    std::cout<<a<<std::endl;
+
     reply_.set_code(ResponseStatus_MIN);
     reply_.set_allocated_handle(handle);
 
@@ -95,30 +111,22 @@ void InitEnvironmentCall::Proceed()
 void ClearEnvironmentCall::Proceed()
 {
   if (status_ == CREATE) {
-    // Make this instance progress to the PROCESS state.
     status_ = PROCESS;
-
     service_->RequestClearEnvironment(&ctx_, &request_, &responder_, cq_, cq_,
                                           this);
   } else if (status_ == PROCESS) {
     new ClearEnvironmentCall(service_, cq_);
-
-    //TODO
-    // The actual processing.
-    //std::string prefix("Hello ");
-    //reply_.set_message(prefix + request_.name());
-
-    //timestamp::Status *ts_status = new timestamp::Status;
-
-    //reply_.set_allocated_status(ts_status);
-    // And we are done! Let the gRPC runtime know we've finished, using the
-    // memory address of this instance as the uniquely identifying tag for
-    // the event.
+    uint64_t session_handle = request_.handle().session_id();
+    if(session_pool->is_session_exist(session_handle)){
+      session_pool->free_session(session_handle);
+      reply_.set_code(ResponseStatus_MIN);
+    }else{
+      reply_.set_code(timestamp::GRPC_STF_TS_INVALID_REQUEST);    //非法的申请
+    }
     status_ = FINISH;
     responder_.Finish(reply_, grpc::Status::OK, this);
   } else {
     GPR_ASSERT(status_ == FINISH);
-    // Once in the FINISH state, deallocate ourselves (CallData).
     delete this;
   }
 }
@@ -126,30 +134,43 @@ void ClearEnvironmentCall::Proceed()
 void CreateTSRequestCall::Proceed()
 {
   if (status_ == CREATE) {
-    // Make this instance progress to the PROCESS state.
     status_ = PROCESS;
-
     service_->RequestCreateTSRequest(&ctx_, &request_, &responder_, cq_, cq_,
                                          this);
   } else if (status_ == PROCESS) {
     new CreateTSRequestCall(service_, cq_);
+    uint64_t session_handle = request_.handle().session_id();
+    if(session_pool->is_session_exist(session_handle)){
+      // session存在
+      // 创建结构体
 
-    //TODO
-    // The actual processing.
-    //std::string prefix("Hello ");
-    //reply_.set_message(prefix + request_.name());
+      //获取包内变量设置
+      request_.uihashalgid();   //算法标识
+      request_.pucindata();     //加盖时间戳的用户信息
+      request_.uiindatalength();//加盖时间戳的用户信息长度
 
-    //timestamp::Status *ts_status = new timestamp::Status;
+      //证书设置
+      if(request_.uireqtype() == 0){
+        //包含时间戳服务器的证书
 
-    //reply_.set_allocated_status(ts_status);
-    // And we are done! Let the gRPC runtime know we've finished, using the
-    // memory address of this instance as the uniquely identifying tag for
-    // the event.
+      } else if(request_.uireqtype() == 1){
+        //不包含时间戳服务器的证书
+
+      } else{
+        reply_.set_code(timestamp::GRPC_STF_TS_INVALID_REQUEST);    //非法的申请
+      }
+
+      std::string package = "dsadsa";
+      reply_.set_puctsrequest(package);
+      reply_.set_puctsrequestlength(package.length());
+      reply_.set_code(ResponseStatus_MIN);
+    }else{
+      reply_.set_code(timestamp::GRPC_STF_TS_INVALID_REQUEST);    //非法的申请
+    }
     status_ = FINISH;
     responder_.Finish(reply_, grpc::Status::OK, this);
   } else {
     GPR_ASSERT(status_ == FINISH);
-    // Once in the FINISH state, deallocate ourselves (CallData).
     delete this;
   }
 }
@@ -157,30 +178,44 @@ void CreateTSRequestCall::Proceed()
 void CreateTSResponseCall::Proceed()
 {
   if (status_ == CREATE) {
-    // Make this instance progress to the PROCESS state.
     status_ = PROCESS;
-
     service_->RequestCreateTSResponse(&ctx_, &request_, &responder_, cq_, cq_,
                                           this);
   } else if (status_ == PROCESS) {
     new CreateTSResponseCall(service_, cq_);
+    uint64_t session_handle = request_.handle().session_id();
+    if(session_pool->is_session_exist(session_handle)){
+      // session存在
 
-    //TODO
-    // The actual processing.
-    //std::string prefix("Hello ");
-    //reply_.set_message(prefix + request_.name());
+      //结构体
 
-    //timestamp::Status *ts_status = new timestamp::Status;
+      //获取包内变量设置
+      request_.uisignaturealgid();   //签名算法标识
+      request_.puctsresquest();      //时间戳请求包
+      request_.uitsrequestlength();  //时间戳请求包长度
 
-    //reply_.set_allocated_status(ts_status);
-    // And we are done! Let the gRPC runtime know we've finished, using the
-    // memory address of this instance as the uniquely identifying tag for
-    // the event.
+
+
+
+      std::string package = "dsadsa";   //结构体转换为string
+      reply_.set_puitsresponse(package);
+      reply_.set_puitsresponselength(package.length());
+
+      if (request_.uisignaturealgid() != SGD_SHA256) {
+        reply_.set_code(timestamp::GRPC_STF_TS_INVALID_ALG);    //不支持的算法类型
+      }
+
+      std::string time = time_manager->get_time();
+      //reply_.set_puitsresponse();
+      //reply_.set_puitsresponselength();
+      reply_.set_code(ResponseStatus_MIN);
+    }else{
+      reply_.set_code(timestamp::GRPC_STF_TS_INVALID_REQUEST);    //非法的申请
+    }
     status_ = FINISH;
     responder_.Finish(reply_, grpc::Status::OK, this);
   } else {
     GPR_ASSERT(status_ == FINISH);
-    // Once in the FINISH state, deallocate ourselves (CallData).
     delete this;
   }
 }
@@ -188,30 +223,27 @@ void CreateTSResponseCall::Proceed()
 void VerifyTSValidityCall::Proceed()
 {
   if (status_ == CREATE) {
-    // Make this instance progress to the PROCESS state.
     status_ = PROCESS;
-
     service_->RequestVerifyTSValidity(&ctx_, &request_, &responder_, cq_, cq_,
                                           this);
   } else if (status_ == PROCESS) {
     new VerifyTSValidityCall(service_, cq_);
+    uint64_t session_handle = request_.handle().session_id();
+    if(session_pool->is_session_exist(session_handle)){
+      // session存在
 
-    //TODO
-    // The actual processing.
-    //std::string prefix("Hello ");
-    //reply_.set_message(prefix + request_.name());
 
-    //timestamp::Status *ts_status = new timestamp::Status;
 
-    //reply_.set_allocated_status(ts_status);
-    // And we are done! Let the gRPC runtime know we've finished, using the
-    // memory address of this instance as the uniquely identifying tag for
-    // the event.
+
+
+      reply_.set_code(ResponseStatus_MIN);
+    }else{
+      reply_.set_code(timestamp::GRPC_STF_TS_INVALID_REQUEST);    //非法的申请
+    }
     status_ = FINISH;
     responder_.Finish(reply_, grpc::Status::OK, this);
   } else {
     GPR_ASSERT(status_ == FINISH);
-    // Once in the FINISH state, deallocate ourselves (CallData).
     delete this;
   }
 }
@@ -219,30 +251,28 @@ void VerifyTSValidityCall::Proceed()
 void GetTSInfoCall::Proceed()
 {
   if (status_ == CREATE) {
-    // Make this instance progress to the PROCESS state.
     status_ = PROCESS;
 
     service_->RequestGetTSInfo(&ctx_, &request_, &responder_, cq_, cq_,
                                    this);
   } else if (status_ == PROCESS) {
     new GetTSInfoCall(service_, cq_);
+    uint64_t session_handle = request_.handle().session_id();
+    if(session_pool->is_session_exist(session_handle)){
+      // session存在
+      auto *TSA_ISSUENAME = (std::string *)"NDSEC_TSA";
 
-    //TODO
-    // The actual processing.
-    //std::string prefix("Hello ");
-    //reply_.set_message(prefix + request_.name());
 
-    //timestamp::Status *ts_status = new timestamp::Status;
+      reply_.set_allocated_pucissuername(TSA_ISSUENAME);
 
-    //reply_.set_allocated_status(ts_status);
-    // And we are done! Let the gRPC runtime know we've finished, using the
-    // memory address of this instance as the uniquely identifying tag for
-    // the event.
+      reply_.set_code(ResponseStatus_MIN);
+    }else{
+      reply_.set_code(timestamp::GRPC_STF_TS_INVALID_REQUEST);    //非法的申请
+    }
     status_ = FINISH;
     responder_.Finish(reply_, grpc::Status::OK, this);
   } else {
     GPR_ASSERT(status_ == FINISH);
-    // Once in the FINISH state, deallocate ourselves (CallData).
     delete this;
   }
 }
@@ -250,30 +280,27 @@ void GetTSInfoCall::Proceed()
 void GetTSDetailCall::Proceed()
 {
   if (status_ == CREATE) {
-    // Make this instance progress to the PROCESS state.
     status_ = PROCESS;
-
     service_->RequestGetTSDetail(&ctx_, &request_, &responder_, cq_, cq_,
                                      this);
   } else if (status_ == PROCESS) {
     new GetTSDetailCall(service_, cq_);
+    uint64_t session_handle = request_.handle().session_id();
+    if(session_pool->is_session_exist(session_handle)){
+      // session存在
 
-    //TODO
-    // The actual processing.
-    //std::string prefix("Hello ");
-    //reply_.set_message(prefix + request_.name());
 
-    //timestamp::Status *ts_status = new timestamp::Status;
 
-    //reply_.set_allocated_status(ts_status);
-    // And we are done! Let the gRPC runtime know we've finished, using the
-    // memory address of this instance as the uniquely identifying tag for
-    // the event.
+
+
+      reply_.set_code(ResponseStatus_MIN);
+    }else{
+      reply_.set_code(timestamp::GRPC_STF_TS_INVALID_REQUEST);    //非法的申请
+    }
     status_ = FINISH;
     responder_.Finish(reply_, grpc::Status::OK, this);
   } else {
     GPR_ASSERT(status_ == FINISH);
-    // Once in the FINISH state, deallocate ourselves (CallData).
     delete this;
   }
 }
