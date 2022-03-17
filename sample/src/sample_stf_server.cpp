@@ -1,5 +1,5 @@
-#include "timestamp/time_adaptor.h"
 #include "time_manager.h"
+#include "timestamp/time_adaptor.h"
 
 #include <fmt/format.h>
 #include <iostream>
