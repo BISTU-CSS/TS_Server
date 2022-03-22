@@ -5,29 +5,16 @@
 #define NDSEC_TS_DB "/home/sunshuo/Desktop/db/ndsts.db"
 
 namespace ndsec::data {
-/*
-class DB_SM2_Key_info {
-public:
-  uint64_t key_id_;
-  std::string key_mod_;
-  std::string pri_d_;
-  std::string pub_x_;
-  std::string pub_y_;
-};
 
-class DB_RSA_Key_info {
+/*
+class DB_Key_info {
 public:
   uint64_t key_id_;
-  uint32_t key_mod_;
-  std::string pri_d_;
-  std::string pri_p_;
-  std::string pri_dp_;
-  std::string pri_q_;
-  std::string pri_dq_;
-  std::string pri_invq_;
-  std::string pub_n_;
-  std::string pub_e_;
-  uint32_t key_length_;
+  std::string name_;
+  std::string type_;
+  std::string mod_;
+  std::string pub_pem_;
+  std::string pri_pem_;
 };
 
 class DB_TS_log_info {
@@ -43,6 +30,7 @@ class DB_TS_CERT_info {
   uint64_t id_;
 
 };
+
 */
 class DataManager {
 public:
@@ -54,9 +42,8 @@ public:
    * @brief
    * @return
    */
-  //virtual bool insert_data(DB_SM2_Key_info sm2_info) = 0;
- // virtual bool insert_data(DB_RSA_Key_info rsa_info) = 0;
- // virtual bool insert_data(DB_TS_log_info log_info) = 0;
+  // virtual bool insert_data(DB_Key_info rsa_info) = 0;
+  // virtual bool insert_data(DB_TS_log_info log_info) = 0;
 
   /**
    * @brief 应该模板

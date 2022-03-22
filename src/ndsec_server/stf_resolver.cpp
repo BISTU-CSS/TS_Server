@@ -7,15 +7,6 @@
 
 #include "openssl/ts.h"
 
-#define SGD_SM3_RSA 0x00010001
-#define SGD_SHA1_RSA 0x00010002
-#define SGD_SHA256_RSA 0x00010004
-#define SGD_SM3_SM2 0x00020201
-
-#define SGD_SM3 0x00000001
-#define SGD_SHA1 0x00000002
-#define SGD_SHA256 0x00000004
-
 std::unique_ptr<ndsec::stf::session::SessionManager> session_pool;
 std::unique_ptr<ndsec::timetool::TimeManager> time_manager;
 std::unique_ptr<ndsec::data::DataManager> data_manager;
@@ -147,8 +138,8 @@ void CreateTSRequestCall::Proceed() {
     if (session_pool->is_session_exist(session_handle)) {
       // session存在
       // 创建结构体
-      std::cout<<ctx_.peer()<<std::endl;
-      //std::cout<<ctx_.client_metadata().find("x-real-ip")->first<<std::endl;
+      std::cout << ctx_.peer() << std::endl;
+      // std::cout<<ctx_.client_metadata().find("x-real-ip")->first<<std::endl;
       //获取包内变量设置
       request_.uihashalgid();    //算法标识
       request_.pucindata();      //加盖时间戳的用户信息
