@@ -3,7 +3,7 @@
 #include "data_manager.h"
 #include "ndsec_ts_error.h"
 #include "session_manager.h"
-#include "time_manager.h"
+#include "timestamp_manager.h"
 
 #include "openssl/ts.h"
 
