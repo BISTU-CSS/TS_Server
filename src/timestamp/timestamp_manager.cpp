@@ -1,9 +1,12 @@
 #include "timestamp_manager.h"
 
+#include "openssl/pem.h"
+#include "openssl/rand.h"
+
 #include "common/crypto_util.h"
 #include "common/exception.h"
+#include "data_manager.h"
 #include "ndsec_ts_error.h"
-#include "openssl/rand.h"
 #include "time_adaptor.h"
 
 #include <sys/time.h>
@@ -19,13 +22,16 @@ class TimeManagerImpl : public TimeManager {
 public:
   explicit TimeManagerImpl() {
     time_adaptor_ = ndsec::timetool::TimeAdaptor::make();
+    data_manager_ = ndsec::data::DataManager::make();
+    data_manager_->init_db();
   }
 
   void reload_time() override {}
 
   std::string get_time() override { return get_time_from_unix_utc(); }
 
-  std::string build_ts_request(uint32_t hash_id, const std::string &data,
+  std::string build_ts_request(uint32_t req_type, uint32_t hash_id,
+                               const std::string &data,
                                UNUSED uint64_t data_length) override {
 
     std::string hash_result;
@@ -40,23 +46,61 @@ public:
                                   common::HashType::SHA256, data);
     }
 
+    if (req_type == 0) {
+      //包含时间戳服务器的证书
+
+    } else if (req_type == 1) {
+      //不包含时间戳服务器的证书
+    }
     return std::__cxx11::string();
   }
 
-  std::string build_ts_response(UNUSED const std::string &request,
+  std::string build_ts_response(const std::string &user_ip, uint32_t sign_id,
+                                UNUSED const std::string &request,
                                 UNUSED uint64_t request_length) override {
+    std::string time = get_time_from_unix_utc();
+    // 1.获取默认证书
+    if (sign_id == SGD_SHA1_RSA) {
 
-    return std::__cxx11::string();
+    } else if (sign_id == SGD_SHA256_RSA) {
+
+    } else if (sign_id == SGD_SM3_SM2) {
+
+    } else if (sign_id == SGD_SM3_RSA) {
+    }
+    std::string ts_info;
+    data_manager_->insert_log("", "", time, user_ip, ts_info);
+    return ts_info;
   }
-  uint8_t verify_ts_info(const std::string &response,UNUSED uint64_t response_length,
-                         uint32_t hash_id, uint32_t sign_id,
-                         const std::string &tsa_cert,
-                         UNUSED uint64_t cert_length) override {
+  bool verify_ts_info(UNUSED const std::string &response,
+                      UNUSED uint64_t response_length, uint32_t hash_id,
+                      UNUSED uint32_t sign_id,
+                      UNUSED const std::string &tsa_cert,
+                      UNUSED uint64_t cert_length) override {
+    if (tsa_cert.empty()) {
+      // 1.获取默认的时间戳服务器证书公钥
 
-    return 0;
+      // 2.获取其中的时间信息
+
+      // 3.调用对应的hash算法
+
+      // 4.判断其中的签名值是否相等
+
+      // 5.返回
+
+    } else {
+      // 1.获取该证书的公钥
+      uint8_t hash_type = 0;
+      uint8_t key_type = 0;
+      std::string pub_pem = get_publickey_pem_form_der_cert(
+          &hash_type, &key_type, (void *)tsa_cert.data(), cert_length);
+      if (hash_id != hash_type) {
+        return false;
+      }
+      // 2.
+    }
+    return true;
   }
-
-
 
 private:
   std::string get_time_from_unix_utc() {
@@ -198,6 +242,81 @@ private:
     return nullptr;
   }
 
+  /**
+   * 将DER格式证书文件提取出其中算法信息与公钥结构
+   * @param hash_type[in,out] hash算法标识 SGD_SM3/SGD_SHA1/SGD_SHA256
+   * @param keyType[in,out] 钥匙类型 SM2/RSA1024/RSA2048，通过宏定义
+   * @param der_cert[in] 证书信息读取出来的buffer
+   * @param der_cert_length[in] 证书buffer大小
+   * @return
+   */
+  std::string get_publickey_pem_form_der_cert(UNUSED uint8_t *hash_type,
+                                              UNUSED uint8_t *key_type,
+                                              void *der_cert,
+                                              uint32_t der_cert_length) {
+    BIO *cert_bio = BIO_new_mem_buf(der_cert, der_cert_length);
+    X509 *cert = d2i_X509_bio(cert_bio, nullptr);
+    uint32_t type = X509_get_signature_type(cert);
+    if (type == NID_sm2sign_with_sm3) {
+      key_type = reinterpret_cast<uint8_t *>(SM2);
+      hash_type = reinterpret_cast<uint8_t *>(SGD_SM3);
+      EVP_PKEY *pkey = X509_get_pubkey(cert);
+      EC_KEY *ec_key = EVP_PKEY_get1_EC_KEY(pkey);
+      BIO *pub = BIO_new(BIO_s_mem());
+      PEM_write_bio_EC_PUBKEY(pub, ec_key);
+      int pub_len = BIO_pending(pub);
+      char *pub_key = new char[pub_len];
+      BIO_read(pub, pub_key, pub_len);
+      std::string result(pub_key, pub_len);
+      delete[] pub_key;
+
+      return result;
+    } else if (type == NID_sha1WithRSAEncryption || type == NID_sha1WithRSA) {
+      hash_type = reinterpret_cast<uint8_t *>(SGD_SHA1);
+
+      EVP_PKEY *pkey = X509_get_pubkey(cert);
+      RSA *rsa_key = EVP_PKEY_get1_RSA(pkey);
+      if (RSA_size(rsa_key) == 128) {
+        key_type = reinterpret_cast<uint8_t *>(RSA1024);
+      } else {
+        key_type = reinterpret_cast<uint8_t *>(RSA2048); //暂不支持
+      }
+
+      BIO *pub = BIO_new(BIO_s_mem());
+      PEM_write_bio_RSA_PUBKEY(pub, rsa_key);
+      int pub_len = BIO_pending(pub);
+      char *pub_key = new char[pub_len];
+      BIO_read(pub, pub_key, pub_len);
+      std::string result(pub_key, pub_len);
+      delete[] pub_key;
+
+      return result;
+    } else if (type == NID_sha256WithRSAEncryption) {
+      hash_type = reinterpret_cast<uint8_t *>(SGD_SHA256);
+
+      EVP_PKEY *pkey = X509_get_pubkey(cert);
+      RSA *rsa_key = EVP_PKEY_get1_RSA(pkey);
+
+      if (RSA_size(rsa_key) == 128) {
+        key_type = reinterpret_cast<uint8_t *>(RSA1024);
+      } else {
+        key_type = reinterpret_cast<uint8_t *>(RSA2048); //暂不支持
+      }
+
+      BIO *pub = BIO_new(BIO_s_mem());
+      PEM_write_bio_RSA_PUBKEY(pub, rsa_key);
+      int pub_len = BIO_pending(pub);
+      char *pub_key = new char[pub_len];
+      BIO_read(pub, pub_key, pub_len);
+      std::string result(pub_key, pub_len);
+      delete[] pub_key;
+
+      return result;
+    }
+
+    return nullptr;
+  }
+
   // std::string get_time_from_clock() { return ""; }
 
   // std::string get_time_from_server() { return ""; }
@@ -205,10 +324,11 @@ private:
 private:
   std::unique_ptr<timetool::TimeAdaptor> time_adaptor_;
   struct timeval timecc {};
-
+  std::unique_ptr<ndsec::data::DataManager> data_manager_;
 };
 
 std::unique_ptr<TimeManager> TimeManager::make() {
   return std::make_unique<TimeManagerImpl>();
 }
+
 } // namespace ndsec::timetool

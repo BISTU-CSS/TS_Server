@@ -88,8 +88,6 @@ void InitEnvironmentCall::Proceed() {
     uint64_t a = session_pool->get_session();
     handle->set_session_id(a);
 
-    std::cout << a << std::endl;
-
     reply_.set_code(timestamp::GRPC_STF_TS_OK);
     reply_.set_allocated_handle(handle);
 
@@ -137,28 +135,14 @@ void CreateTSRequestCall::Proceed() {
     uint64_t session_handle = request_.handle().session_id();
     if (session_pool->is_session_exist(session_handle)) {
       // session存在
-      // 创建结构体
-      std::cout << ctx_.peer() << std::endl;
-      // std::cout<<ctx_.client_metadata().find("x-real-ip")->first<<std::endl;
-      //获取包内变量设置
-      request_.uihashalgid();    //算法标识
-      request_.pucindata();      //加盖时间戳的用户信息
-      request_.uiindatalength(); //加盖时间戳的用户信息长度
-
-      //证书设置
-      if (request_.uireqtype() == 0) {
-        //包含时间戳服务器的证书
-
-      } else if (request_.uireqtype() == 1) {
-        //不包含时间戳服务器的证书
-
-      } else {
+      if (request_.uireqtype() != 0 || request_.uireqtype() != 1) {
         reply_.set_code(timestamp::GRPC_STF_TS_INVALID_REQUEST); //非法的申请
       }
-
-      std::string package = "dsadsa";
-      reply_.set_puctsrequest(package);
-      reply_.set_puctsrequestlength(package.length());
+      std::string request = time_manager->build_ts_request(
+          request_.uireqtype(), request_.uihashalgid(), request_.pucindata(),
+          request_.uiindatalength());
+      reply_.set_puctsrequest(request);
+      reply_.set_puctsrequestlength(request.length());
       reply_.set_code(timestamp::GRPC_STF_TS_OK);
     } else {
       reply_.set_code(timestamp::GRPC_STF_TS_INVALID_REQUEST); //非法的申请
@@ -181,36 +165,14 @@ void CreateTSResponseCall::Proceed() {
     uint64_t session_handle = request_.handle().session_id();
     if (session_pool->is_session_exist(session_handle)) {
       // session存在
-
-      //结构体
-
       //获取包内变量设置
-      request_.uisignaturealgid();  //签名算法标识
-      request_.puctsresquest();     //时间戳请求包
-      request_.uitsrequestlength(); //时间戳请求包长度
-
-      std::string package = "dsadsa"; //结构体转换为string
+      // TODO: try and catch
+      std::string package = time_manager->build_ts_response(
+          ctx_.peer(), request_.uisignaturealgid(), request_.puctsresquest(),
+          request_.uitsrequestlength()); //结构体转换为string
       reply_.set_puitsresponse(package);
       reply_.set_puitsresponselength(package.length());
-
-      if (request_.uisignaturealgid() == SGD_SHA1) {
-        std::string time = time_manager->get_time();
-        // reply_.set_puitsresponse();
-        // reply_.set_puitsresponselength();
-      } else if (request_.uisignaturealgid() == SGD_SHA256) {
-        std::string time = time_manager->get_time();
-        // reply_.set_puitsresponse();
-        // reply_.set_puitsresponselength();
-      } else if (request_.uisignaturealgid() == SGD_SM3) {
-
-        std::string time = time_manager->get_time();
-        // reply_.set_puitsresponse();
-        // reply_.set_puitsresponselength();
-        reply_.set_code(timestamp::GRPC_STF_TS_OK);
-      } else {
-        reply_.set_code(timestamp::GRPC_STF_TS_INVALID_ALG); //不支持的算法类型
-      }
-
+      reply_.set_code(timestamp::GRPC_STF_TS_OK);
     } else {
       reply_.set_code(timestamp::GRPC_STF_TS_INVALID_REQUEST); //非法的申请
     }
@@ -232,8 +194,15 @@ void VerifyTSValidityCall::Proceed() {
     uint64_t session_handle = request_.handle().session_id();
     if (session_pool->is_session_exist(session_handle)) {
       // session存在
-
-      reply_.set_code(timestamp::GRPC_STF_TS_OK);
+      bool result = time_manager->verify_ts_info(
+          request_.puctsresponse(), request_.uitsresponselength(),
+          request_.uihashalgid(), request_.uisignaturealgid(),
+          request_.puctscert(), request_.uitscertlength());
+      if (result == true) {
+        reply_.set_code(timestamp::GRPC_STF_TS_OK);
+      } else {
+        reply_.set_code(timestamp::GRPC_STF_TS_INVALID_SIGNATURE);
+      }
     } else {
       reply_.set_code(timestamp::GRPC_STF_TS_INVALID_REQUEST); //非法的申请
     }
@@ -255,9 +224,13 @@ void GetTSInfoCall::Proceed() {
     uint64_t session_handle = request_.handle().session_id();
     if (session_pool->is_session_exist(session_handle)) {
       // session存在
+      // 证书的通用名称 数据库里取得
       auto *TSA_ISSUENAME = (std::string *)"NDSEC_TSA";
 
       reply_.set_allocated_pucissuername(TSA_ISSUENAME);
+
+      // reply_.set_allocated_puctime();
+      // reply_.set_puitimelength();
 
       reply_.set_code(timestamp::GRPC_STF_TS_OK);
     } else {
@@ -280,7 +253,14 @@ void GetTSDetailCall::Proceed() {
     uint64_t session_handle = request_.handle().session_id();
     if (session_pool->is_session_exist(session_handle)) {
       // session存在
+      request_.puctsresponse();
+      request_.uitsresponselength();
+      request_.uiitemnumber();
 
+      request_.puiitemvaluelength();
+
+      // reply_.set_puiitemvalue();
+      // reply_.set_puiitemvaluelength();
       reply_.set_code(timestamp::GRPC_STF_TS_OK);
     } else {
       reply_.set_code(timestamp::GRPC_STF_TS_INVALID_REQUEST); //非法的申请
