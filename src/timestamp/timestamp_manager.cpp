@@ -9,6 +9,7 @@
 #include "ndsec_ts_error.h"
 #include "time_adaptor.h"
 #include "common/robust_mutex.h"
+#include "openssl/ts.h"
 
 #include <sys/time.h>
 
@@ -51,13 +52,18 @@ public:
                                   common::HashType::SHA256, data);
     }
 
+    unsigned char req_buffer[1000];
+    int req_buffer_length = 0;
     if (req_type == 0) {
       //包含时间戳服务器的证书
+      CreateTSReq(hash_id, true,
+                  reinterpret_cast<unsigned char *>(hash_result.data()),hash_result.length(),req_buffer,&req_buffer_length);
 
     } else if (req_type == 1) {
       //不包含时间戳服务器的证书
     }
-    return std::__cxx11::string();
+    std::string res(req_buffer[0],req_buffer_length);
+    return res;
   }
 
   std::string build_ts_response(const std::string &user_ip, uint32_t sign_id,
@@ -335,15 +341,265 @@ private:
     return nullptr;
   }
 
+  /**
+   *
+   * @param cert_req
+   * @param byDigest
+   * @param nDigestLen
+   * @param tsreq
+   * @param tsreqlen
+   * @return
+   */
+  uint8_t CreateTSReq(bool cert_req, unsigned char *byDigest, int nDigestLen, unsigned char *tsreq, int *tsreqlen)
+  {
+    //bool bRet = false;
+    int nRet = 0, RetVal = 0;
+    TS_MSG_IMPRINT *msg_imprint = nullptr;
+    X509_ALGOR *x509_algor = nullptr;
+    ASN1_INTEGER *nonce_asn1 = nullptr;
+    TS_REQ *ts_req = nullptr;
+
+    // ts req ********************************************************
+    ts_req = TS_REQ_new();
+    if (!ts_req)
+    {
+      //RetVal = TS_MemErr;
+      goto end;
+    }
+
+    // version
+    long version;
+    version = 1;
+    nRet = TS_REQ_set_version(ts_req, version);
+    if (!nRet)
+    {
+      //RetVal = TS_SetVerErr;
+      goto end;
+    }
+
+    // messageImprint
+    x509_algor = X509_ALGOR_new();
+
+    x509_algor->algorithm = OBJ_nid2obj(NID_sha1);
+    if (!(x509_algor->algorithm))
+    {
+      //RetVal = TS_ANSIErr;
+      goto end;
+    }
+    x509_algor->parameter = ASN1_TYPE_new();
+    if (!(x509_algor->parameter))
+    {
+      //RetVal = TS_MemErr;
+      goto end;
+    }
+    x509_algor->parameter->type = V_ASN1_NULL;
+
+    msg_imprint = TS_MSG_IMPRINT_new();
+    if (!msg_imprint)
+    {
+      //RetVal = TS_MemErr;
+      goto end;
+    }
+    nRet = TS_MSG_IMPRINT_set_algo(msg_imprint, x509_algor);
+    if (!nRet)
+    {
+      //RetVal = TS_MSGAlgoErr;
+      goto end;
+    }
+    nRet = TS_MSG_IMPRINT_set_msg(msg_imprint, byDigest, nDigestLen);
+    if (!nRet)
+    {
+      //RetVal = TS_MSGErr;
+      goto end;
+    }
+    nRet = TS_REQ_set_msg_imprint(ts_req, msg_imprint);
+    if (!nRet)
+    {
+      //RetVal = TS_MSGImpErr;
+      goto end;
+    }
+
+    // nonce
+    nonce_asn1 = create_nonce(NONCE_LENGTH);
+    if (!nonce_asn1)
+    {
+      //RetVal = TS_GenRandErr;
+      goto end;
+    }
+
+    nRet = TS_REQ_set_nonce(ts_req, nonce_asn1);
+    if (!nRet)
+    {
+      //RetVal = TS_SetRandErr;
+      goto end;
+    }
+
+    // certReq
+    if(cert_req){
+      nRet = TS_REQ_set_cert_req(ts_req, 1);
+    }else{
+      nRet = TS_REQ_set_cert_req(ts_req, 0);
+    }
+
+    if (!nRet)
+    {
+      //RetVal = TS_NewReqErr;
+      goto end;
+    }
+
+    // output
+    unsigned char byOut[10240];
+    memset(byOut, 0, sizeof(byOut));
+    int nOutLen;
+    unsigned char *pbTmp;
+    pbTmp = byOut;
+    nOutLen = i2d_TS_REQ(ts_req, &pbTmp);
+    if (nOutLen <= 0)
+    {
+      //RetVal = TS_ReqErr;
+      goto end;
+    }
+    memcpy(tsreq, byOut, nOutLen);
+    *tsreqlen = nOutLen;
+
+  end:
+    if (msg_imprint)
+      TS_MSG_IMPRINT_free(msg_imprint);
+    if (x509_algor)
+      X509_ALGOR_free(x509_algor);
+    if (nonce_asn1)
+      ASN1_INTEGER_free(nonce_asn1);
+    if (ts_req)
+      TS_REQ_free(ts_req);
+
+    return RetVal;
+  }
+
+  uint8_t CreateTSReq(uint8_t hash_type, bool hava_cert_req, unsigned char *byDigest, int nDigestLen, unsigned char *tsreq, int *tsreqlen)
+  {
+    int nRet = 0, RetVal = 0;
+    TS_MSG_IMPRINT *msg_imprint = nullptr;
+    X509_ALGOR *x509_algor = nullptr;
+    ASN1_INTEGER *nonce_asn1 = nullptr;
+    TS_REQ *ts_req = nullptr;
+
+    // ts req ********************************************************
+    ts_req = TS_REQ_new();
+    if (!ts_req)
+    {
+      //RetVal = TS_MemErr;
+      goto end;
+    }
+
+    // version
+    long version;
+    version = 1;
+    nRet = TS_REQ_set_version(ts_req, version);
+    if (!nRet)
+    {
+      goto end;
+    }
+
+    // messageImprint
+    x509_algor = X509_ALGOR_new();
+    if(hash_type == SGD_SM3){
+      x509_algor->algorithm = OBJ_nid2obj(NID_sm3);
+    }else if(hash_type == SGD_SHA1){
+      x509_algor->algorithm = OBJ_nid2obj(NID_sha1);
+    }else if(hash_type == SGD_SHA256){
+      x509_algor->algorithm = OBJ_nid2obj(NID_sha256);
+    }
+    if (!(x509_algor->algorithm))
+    {
+      goto end;
+    }
+    x509_algor->parameter = ASN1_TYPE_new();
+    if (!(x509_algor->parameter))
+    {
+      goto end;
+    }
+    x509_algor->parameter->type = V_ASN1_NULL;
+
+    msg_imprint = TS_MSG_IMPRINT_new();
+    if (!msg_imprint)
+    {
+      goto end;
+    }
+    nRet = TS_MSG_IMPRINT_set_algo(msg_imprint, x509_algor);
+    if (!nRet)
+    {
+      goto end;
+    }
+    nRet = TS_MSG_IMPRINT_set_msg(msg_imprint, byDigest, nDigestLen);
+    if (!nRet)
+    {
+      goto end;
+    }
+    nRet = TS_REQ_set_msg_imprint(ts_req, msg_imprint);
+    if (!nRet)
+    {
+      goto end;
+    }
+
+    // nonce
+    nonce_asn1 = create_nonce(64);
+    if (!nonce_asn1)
+    {
+      goto end;
+    }
+
+    nRet = TS_REQ_set_nonce(ts_req, nonce_asn1);
+    if (!nRet)
+    {
+      goto end;
+    }
+    // certReq
+    if(hava_cert_req){
+      nRet = TS_REQ_set_cert_req(ts_req, 1);
+    }else{
+      nRet = TS_REQ_set_cert_req(ts_req, 0);
+    }
+    if (!nRet)
+    {
+      goto end;
+    }
+    // output
+    unsigned char byOut[10240];
+    memset(byOut, 0, sizeof(byOut));
+    int nOutLen;
+    unsigned char *pbTmp;
+    pbTmp = byOut;
+    nOutLen = i2d_TS_REQ(ts_req, &pbTmp);
+    if (nOutLen <= 0)
+    {
+      goto end;
+    }
+    memcpy(tsreq, byOut, nOutLen);
+    *tsreqlen = nOutLen;
+
+  end:
+    if (msg_imprint)
+      TS_MSG_IMPRINT_free(msg_imprint);
+    if (x509_algor)
+      X509_ALGOR_free(x509_algor);
+    if (nonce_asn1)
+      ASN1_INTEGER_free(nonce_asn1);
+    if (ts_req)
+      TS_REQ_free(ts_req);
+
+    return RetVal;
+  }
+
   // std::string get_time_from_clock() { return ""; }
 
   // std::string get_time_from_server() { return ""; }
+
   void set_tsa_default_info(){
-    tsa_default_keypair_ = data_manager_->get_default_cert_key_pem(&tsa_default_key_type_);
-    tsa_cert_issus_ = ;
-    tsa_cert_theme_ = ;
-    tsa_default_hash_id_ = ;
-    tsa_default_sign_id_ = ;
+    //tsa_default_keypair_ = data_manager_->get_default_cert_key_pem(&tsa_default_key_type_);
+    //tsa_cert_issus_ = ;
+    //tsa_cert_theme_ = ;
+    //tsa_default_hash_id_ = ;
+    //tsa_default_sign_id_ = ;
   }
 private:
   std::unique_ptr<timetool::TimeAdaptor> time_adaptor_;
@@ -351,12 +607,12 @@ private:
   std::unique_ptr<ndsec::data::DataManager> data_manager_;
   common::robust_mutex mutex_;
   // 时间戳服务器基本信息，初始化时读入
-  std::string tsa_cert_issus_;
-  std::string tsa_cert_theme_;
-  common::Keypair tsa_default_keypair_;
-  uint8_t tsa_default_key_type_;
-  uint32_t tsa_default_hash_id_;
-  uint32_t tsa_default_sign_id_;
+  //std::string tsa_cert_issus_;
+  //std::string tsa_cert_theme_;
+  //common::Keypair tsa_default_keypair_;
+  //uint8_t tsa_default_key_type_;
+  //uint32_t tsa_default_hash_id_;
+ // uint32_t tsa_default_sign_id_;
 };
 
 std::unique_ptr<TimeManager> TimeManager::make() {

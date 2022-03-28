@@ -25,7 +25,14 @@ namespace ndsec::timetool {
 class TimeManager {
 public:
   virtual ~TimeManager() = default;
-
+  /**
+   *
+   * @param req_type
+   * @param hash_id
+   * @param data
+   * @param data_length
+   * @return
+   */
   virtual std::string build_ts_request(uint32_t req_type, uint32_t hash_id,
                                        const std::string &data,
                                        uint64_t data_length) = 0;
