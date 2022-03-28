@@ -26,12 +26,6 @@ class TimeManager {
 public:
   virtual ~TimeManager() = default;
 
-  /**
-   * @brief 与可信时间源通讯,更新原子钟的最新时间
-   * @return 是否更新成功 throw Exception -- 错误
-   */
-  virtual void reload_time() = 0;
-
   virtual std::string build_ts_request(uint32_t req_type, uint32_t hash_id,
                                        const std::string &data,
                                        uint64_t data_length) = 0;

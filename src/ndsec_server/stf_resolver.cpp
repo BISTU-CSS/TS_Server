@@ -198,7 +198,7 @@ void VerifyTSValidityCall::Proceed() {
           request_.puctsresponse(), request_.uitsresponselength(),
           request_.uihashalgid(), request_.uisignaturealgid(),
           request_.puctscert(), request_.uitscertlength());
-      if (result == true) {
+      if (result) {
         reply_.set_code(timestamp::GRPC_STF_TS_OK);
       } else {
         reply_.set_code(timestamp::GRPC_STF_TS_INVALID_SIGNATURE);

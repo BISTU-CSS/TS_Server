@@ -8,6 +8,7 @@
 #include "data_manager.h"
 #include "ndsec_ts_error.h"
 #include "time_adaptor.h"
+#include "common/robust_mutex.h"
 
 #include <sys/time.h>
 
@@ -16,23 +17,27 @@
 #define UNUSED __attribute__((unused))
 
 namespace ndsec::timetool {
+
 #define NONCE_LENGTH 64
 #define SERIAL_FILE "/home/sunshuo/Desktop/db/tsa_serial_file"
+
 class TimeManagerImpl : public TimeManager {
 public:
   explicit TimeManagerImpl() {
     time_adaptor_ = ndsec::timetool::TimeAdaptor::make();
     data_manager_ = ndsec::data::DataManager::make();
     data_manager_->init_db();
+    mutex_.init();
+    set_tsa_default_info();
   }
-
-  void reload_time() override {}
 
   std::string get_time() override { return get_time_from_unix_utc(); }
 
   std::string build_ts_request(uint32_t req_type, uint32_t hash_id,
                                const std::string &data,
                                UNUSED uint64_t data_length) override {
+    //判断hashid是否与default的相同
+
 
     std::string hash_result;
     if (hash_id == SGD_SM3) {
@@ -58,6 +63,8 @@ public:
   std::string build_ts_response(const std::string &user_ip, uint32_t sign_id,
                                 UNUSED const std::string &request,
                                 UNUSED uint64_t request_length) override {
+    //判断sign id是否与default的相同
+
     std::string time = get_time_from_unix_utc();
     // 1.获取默认证书
     if (sign_id == SGD_SHA1_RSA) {
@@ -69,7 +76,16 @@ public:
     } else if (sign_id == SGD_SM3_RSA) {
     }
     std::string ts_info;
-    data_manager_->insert_log("", "", time, user_ip, ts_info);
+
+    //存入数据库
+    {
+      mutex_.lock();
+      ASN1_INTEGER* b = ASN1_INTEGER_new();
+      b = next_serial(SERIAL_FILE);
+      save_ts_serial(SERIAL_FILE,b);
+      data_manager_->insert_log(ASN1_INTEGER_get(b),"", "", time, user_ip, ts_info);
+    }
+
     return ts_info;
   }
   bool verify_ts_info(UNUSED const std::string &response,
@@ -98,7 +114,9 @@ public:
         return false;
       }
       // 2.
+
     }
+
     return true;
   }
 
@@ -320,11 +338,25 @@ private:
   // std::string get_time_from_clock() { return ""; }
 
   // std::string get_time_from_server() { return ""; }
-
+  void set_tsa_default_info(){
+    tsa_default_keypair_ = data_manager_->get_default_cert_key_pem(&tsa_default_key_type_);
+    tsa_cert_issus_ = ;
+    tsa_cert_theme_ = ;
+    tsa_default_hash_id_ = ;
+    tsa_default_sign_id_ = ;
+  }
 private:
   std::unique_ptr<timetool::TimeAdaptor> time_adaptor_;
   struct timeval timecc {};
   std::unique_ptr<ndsec::data::DataManager> data_manager_;
+  common::robust_mutex mutex_;
+  // 时间戳服务器基本信息，初始化时读入
+  std::string tsa_cert_issus_;
+  std::string tsa_cert_theme_;
+  common::Keypair tsa_default_keypair_;
+  uint8_t tsa_default_key_type_;
+  uint32_t tsa_default_hash_id_;
+  uint32_t tsa_default_sign_id_;
 };
 
 std::unique_ptr<TimeManager> TimeManager::make() {
