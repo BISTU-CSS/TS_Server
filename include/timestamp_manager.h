@@ -54,6 +54,12 @@ public:
    */
   virtual std::string get_time() = 0;
 
+  /**
+   *
+   * @return
+   */
+  virtual std::string get_tsa_name() = 0;
+
 public:
   static std::unique_ptr<TimeManager> make();
 };

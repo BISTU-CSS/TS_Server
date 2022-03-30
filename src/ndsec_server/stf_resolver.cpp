@@ -226,7 +226,7 @@ void GetTSInfoCall::Proceed() {
       // session存在
       // 证书的通用名称 数据库里取得
       auto *TSA_ISSUENAME = (std::string *)"NDSEC_TSA";
-
+      time_manager->
       reply_.set_allocated_pucissuername(TSA_ISSUENAME);
 
       // reply_.set_allocated_puctime();
