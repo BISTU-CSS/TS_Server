@@ -142,18 +142,17 @@ public:
     return true;
   }
 
-  void insert_log(uint64_t ts_id,
-                  const std::string &ts_issue_,
+  void insert_log(uint64_t ts_id, const std::string &ts_issue_,
                   const std::string &ts_certificate_,
                   const std::string &ts_time_, const std::string &user_ip_,
                   const std::string &ts_info_) override {
     char *zErrMsg = nullptr;
 
-    std::string sql =
-        fmt::format("INSERT INTO Timestamp_log "
-                    "(ts_id, ts_issue,ts_certificate,ts_time,user_ip,ts_info) VALUES "
-                    "({0},'{1}','{2}','{3}','{4}','{5}')",
-                    ts_id,ts_issue_, ts_certificate_, ts_time_, user_ip_, ts_info_);
+    std::string sql = fmt::format(
+        "INSERT INTO Timestamp_log "
+        "(ts_id, ts_issue,ts_certificate,ts_time,user_ip,ts_info) VALUES "
+        "({0},'{1}','{2}','{3}','{4}','{5}')",
+        ts_id, ts_issue_, ts_certificate_, ts_time_, user_ip_, ts_info_);
     sqlite3_exec(db, sql.c_str(), nullptr, nullptr, &zErrMsg);
   }
 

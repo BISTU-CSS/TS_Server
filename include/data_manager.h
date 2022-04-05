@@ -30,8 +30,7 @@ public:
    * @param ts_info_ 时间戳结构，ASN.1
    * @return
    */
-  virtual void insert_log(uint64_t ts_id,
-      const std::string &ts_issue_,
+  virtual void insert_log(uint64_t ts_id, const std::string &ts_issue_,
                           const std::string &ts_certificate_,
                           const std::string &ts_time_,
                           const std::string &user_ip_,

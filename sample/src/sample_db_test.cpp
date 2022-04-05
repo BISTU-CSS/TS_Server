@@ -1,13 +1,13 @@
 #include "common/crypto_util.h"
 #include "data_manager.h"
 #include "openssl/pem.h"
-#include "openssl/x509.h"
-#include "openssl/ts.h"
 #include "openssl/rand.h"
+#include "openssl/ts.h"
+#include "openssl/x509.h"
 #include "timestamp_manager.h"
+#include <cstring>
 #include <iostream>
 #include <memory>
-#include <cstring>
 
 #define UNUSED __attribute__((unused))
 
@@ -41,8 +41,8 @@ err:
   return nullptr;
 }
 
-uint8_t CreateTSReq(uint8_t hash_type, bool cert_req, unsigned char *byDigest, int nDigestLen, unsigned char *tsreq, int *tsreqlen)
-{
+uint8_t CreateTSReq(uint8_t hash_type, bool cert_req, unsigned char *byDigest,
+                    int nDigestLen, unsigned char *tsreq, int *tsreqlen) {
   int nRet = 0, RetVal = 0;
   TS_MSG_IMPRINT *msg_imprint = nullptr;
   X509_ALGOR *x509_algor = nullptr;
@@ -51,10 +51,9 @@ uint8_t CreateTSReq(uint8_t hash_type, bool cert_req, unsigned char *byDigest, i
 
   // ts req ********************************************************
   ts_req = TS_REQ_new();
-  if (!ts_req)
-  {
-    //RetVal = TS_MemErr;
-    std::cout<<"ERROR"<<std::endl;
+  if (!ts_req) {
+    // RetVal = TS_MemErr;
+    std::cout << "ERROR" << std::endl;
     goto end;
   }
 
@@ -62,86 +61,76 @@ uint8_t CreateTSReq(uint8_t hash_type, bool cert_req, unsigned char *byDigest, i
   long version;
   version = 1;
   nRet = TS_REQ_set_version(ts_req, version);
-  if (!nRet)
-  {
-    //RetVal = TS_SetVerErr;
-    std::cout<<"ERROR"<<std::endl;
+  if (!nRet) {
+    // RetVal = TS_SetVerErr;
+    std::cout << "ERROR" << std::endl;
 
     goto end;
   }
 
   // messageImprint
   x509_algor = X509_ALGOR_new();
-  if(hash_type == SGD_SM3){
+  if (hash_type == SGD_SM3) {
     x509_algor->algorithm = OBJ_nid2obj(NID_sm3);
-  }else if(hash_type == SGD_SHA1){
+  } else if (hash_type == SGD_SHA1) {
     x509_algor->algorithm = OBJ_nid2obj(NID_sha1);
-  }else if(hash_type == SGD_SHA256){
+  } else if (hash_type == SGD_SHA256) {
     x509_algor->algorithm = OBJ_nid2obj(NID_sha256);
   }
-  if (!(x509_algor->algorithm))
-  {
-    std::cout<<"ERROR"<<std::endl;
+  if (!(x509_algor->algorithm)) {
+    std::cout << "ERROR" << std::endl;
     goto end;
   }
   x509_algor->parameter = ASN1_TYPE_new();
-  if (!(x509_algor->parameter))
-  {
-    std::cout<<"ERROR"<<std::endl;
+  if (!(x509_algor->parameter)) {
+    std::cout << "ERROR" << std::endl;
     goto end;
   }
   x509_algor->parameter->type = V_ASN1_NULL;
 
   msg_imprint = TS_MSG_IMPRINT_new();
-  if (!msg_imprint)
-  {
-    std::cout<<"ERROR"<<std::endl;
+  if (!msg_imprint) {
+    std::cout << "ERROR" << std::endl;
     goto end;
   }
   nRet = TS_MSG_IMPRINT_set_algo(msg_imprint, x509_algor);
-  if (!nRet)
-  {
-    std::cout<<"ERROR"<<std::endl;
+  if (!nRet) {
+    std::cout << "ERROR" << std::endl;
     goto end;
   }
   nRet = TS_MSG_IMPRINT_set_msg(msg_imprint, byDigest, nDigestLen);
-  if (!nRet)
-  {
-    std::cout<<"ERROR"<<std::endl;
+  if (!nRet) {
+    std::cout << "ERROR" << std::endl;
     goto end;
   }
   nRet = TS_REQ_set_msg_imprint(ts_req, msg_imprint);
-  if (!nRet)
-  {
-    std::cout<<"ERROR"<<std::endl;
+  if (!nRet) {
+    std::cout << "ERROR" << std::endl;
     goto end;
   }
 
   // nonce
   nonce_asn1 = create_nonce(64);
-  if (!nonce_asn1)
-  {
-    std::cout<<"ERROR"<<std::endl;
+  if (!nonce_asn1) {
+    std::cout << "ERROR" << std::endl;
     goto end;
   }
 
   nRet = TS_REQ_set_nonce(ts_req, nonce_asn1);
-  if (!nRet)
-  {
-    std::cout<<"ERROR"<<std::endl;
+  if (!nRet) {
+    std::cout << "ERROR" << std::endl;
     goto end;
   }
 
   // certReq
-  if(cert_req){
+  if (cert_req) {
     nRet = TS_REQ_set_cert_req(ts_req, 1);
-  }else{
+  } else {
     nRet = TS_REQ_set_cert_req(ts_req, 0);
   }
 
-  if (!nRet)
-  {
-    std::cout<<"ERROR"<<std::endl;
+  if (!nRet) {
+    std::cout << "ERROR" << std::endl;
     goto end;
   }
 
@@ -152,9 +141,8 @@ uint8_t CreateTSReq(uint8_t hash_type, bool cert_req, unsigned char *byDigest, i
   unsigned char *pbTmp;
   pbTmp = byOut;
   nOutLen = i2d_TS_REQ(ts_req, &pbTmp);
-  if (nOutLen <= 0)
-  {
-    std::cout<<"ERROR"<<std::endl;
+  if (nOutLen <= 0) {
+    std::cout << "ERROR" << std::endl;
     goto end;
   }
   memcpy(tsreq, byOut, nOutLen);
@@ -179,41 +167,42 @@ int main(int argc, UNUSED char *argv[]) {
   int result_length = 0;
   std::string a = "3214";
   unsigned char result[1000];
-  CreateTSReq(SGD_SHA1, true, reinterpret_cast<unsigned char *>(a.data()),a.length(),result,&result_length);
-  std::cout<<result_length<<std::endl;
+  CreateTSReq(SGD_SHA1, true, reinterpret_cast<unsigned char *>(a.data()),
+              a.length(), result, &result_length);
+  std::cout << result_length << std::endl;
 
-  std::string add((char *)result,result_length);
-  std::cout<<add<<std::endl;
+  std::string add((char *)result, result_length);
+  std::cout << add << std::endl;
 
   TS_REQ *ts_req = nullptr;
   const unsigned char *t = reinterpret_cast<const unsigned char *>(add.data());
-  d2i_TS_REQ(&ts_req, &t,result_length);
-  std::cout<<TS_REQ_get_version(ts_req)<<std::endl;
+  d2i_TS_REQ(&ts_req, &t, result_length);
+  std::cout << TS_REQ_get_version(ts_req) << std::endl;
   TS_MSG_IMPRINT *msg_imprint = TS_REQ_get_msg_imprint(ts_req);
 
-  std::cout<<TS_MSG_IMPRINT_get_msg(msg_imprint)->data<<std::endl;
-  std::cout<<TS_MSG_IMPRINT_get_msg(msg_imprint)->length<<std::endl;
+  std::cout << TS_MSG_IMPRINT_get_msg(msg_imprint)->data << std::endl;
+  std::cout << TS_MSG_IMPRINT_get_msg(msg_imprint)->length << std::endl;
 
-  //const char *filenmame = "/home/sunshuo/Desktop/db/serial";
+  // const char *filenmame = "/home/sunshuo/Desktop/db/serial";
 
-//  std::string a;
-//  uint64_t cc = 0;
-//  ASN1_INTEGER *b = ASN1_INTEGER_new();
-//  {
-//    ASN1_INTEGER_set(b,cc);
-//    save_ts_serial(filenmame,b);
-//    get_serial(filenmame,a);
-//    std::cout<<a<<std::endl;
-//    b = next_serial(filenmame);
-//    save_ts_serial(filenmame,b);
-//    get_serial(filenmame,a);
-//    std::cout<<a<<std::endl;
-//  }
-//  std::cout<<ASN1_INTEGER_get(b)<<std::endl;
+  //  std::string a;
+  //  uint64_t cc = 0;
+  //  ASN1_INTEGER *b = ASN1_INTEGER_new();
+  //  {
+  //    ASN1_INTEGER_set(b,cc);
+  //    save_ts_serial(filenmame,b);
+  //    get_serial(filenmame,a);
+  //    std::cout<<a<<std::endl;
+  //    b = next_serial(filenmame);
+  //    save_ts_serial(filenmame,b);
+  //    get_serial(filenmame,a);
+  //    std::cout<<a<<std::endl;
+  //  }
+  //  std::cout<<ASN1_INTEGER_get(b)<<std::endl;
 
-//  std::unique_ptr<ndsec::data::DataManager> data_manager;
-//  data_manager = ndsec::data::DataManager::make();
-//  data_manager->init_db();
-//  // data_manager->insert_log("a","b","c","d","e");
-//  data_manager->get_default_cert_key_pem(nullptr);
+  //  std::unique_ptr<ndsec::data::DataManager> data_manager;
+  //  data_manager = ndsec::data::DataManager::make();
+  //  data_manager->init_db();
+  //  // data_manager->insert_log("a","b","c","d","e");
+  //  data_manager->get_default_cert_key_pem(nullptr);
 }

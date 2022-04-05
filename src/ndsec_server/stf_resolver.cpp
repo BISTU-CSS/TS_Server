@@ -138,9 +138,11 @@ void CreateTSRequestCall::Proceed() {
       if (request_.uireqtype() != 0 || request_.uireqtype() != 1) {
         reply_.set_code(timestamp::GRPC_STF_TS_INVALID_REQUEST); //非法的申请
       }
+      std::cout << request_.pucindata() << std::endl;
       std::string request = time_manager->build_ts_request(
           request_.uireqtype(), request_.uihashalgid(), request_.pucindata(),
           request_.uiindatalength());
+      std::cout << request << std::endl;
       reply_.set_puctsrequest(request);
       reply_.set_puctsrequestlength(request.length());
       reply_.set_code(timestamp::GRPC_STF_TS_OK);
@@ -164,9 +166,9 @@ void CreateTSResponseCall::Proceed() {
     new CreateTSResponseCall(service_, cq_);
     uint64_t session_handle = request_.handle().session_id();
     if (session_pool->is_session_exist(session_handle)) {
-      // session存在
-      //获取包内变量设置
+      // session存在 , 获取包内变量设置
       // TODO: try and catch
+      std::string request = request_.puctsresquest();
       std::string package = time_manager->build_ts_response(
           ctx_.peer(), request_.uisignaturealgid(), request_.puctsresquest(),
           request_.uitsrequestlength()); //结构体转换为string
@@ -226,7 +228,7 @@ void GetTSInfoCall::Proceed() {
       // session存在
       // 证书的通用名称 数据库里取得
       auto *TSA_ISSUENAME = (std::string *)"NDSEC_TSA";
-      time_manager->
+      // time_manager->
       reply_.set_allocated_pucissuername(TSA_ISSUENAME);
 
       // reply_.set_allocated_puctime();
