@@ -13,8 +13,7 @@
 #define SGD_SHA256 0x00000004
 
 // Key Types
-#define RSA1024 1
-#define RSA2048 2
+#define RSA2048 1
 #define SM2 3
 
 namespace ndsec::timetool {

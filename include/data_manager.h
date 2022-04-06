@@ -48,6 +48,8 @@ public:
    */
   virtual common::Keypair get_default_cert_key_pem(uint8_t *key_type) = 0;
 
+  virtual std::string get_default_cert() = 0;
+
   static std::unique_ptr<DataManager> make();
 };
 } // namespace ndsec::data

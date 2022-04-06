@@ -33,21 +33,21 @@ public:
       std::string sql = fmt::format("INSERT INTO KeyPair_info "
                                     "(key_name,key_type,key_mod,pub_pem,pri_"
                                     "pem) VALUES ('{0}',{1},{2},'{3}','{4}')",
-                                    "RSA_TS_KEY1", RSA1024, 1024,
+                                    "RSA_TS_KEY1", RSA2048, 2048,
                                     rsa_key.public_key, rsa_key.private_key);
       sqlite3_exec(db, sql.c_str(), nullptr, nullptr, &zErrMsg);
       rsa_key = rsa_generator_key(common::OperationType::GMSSL); // RSA_TS_KEY2
       sql = fmt::format("INSERT INTO KeyPair_info "
                         "(key_name,key_type,key_mod,pub_pem,pri_pem) VALUES "
                         "('{0}',{1},{2},'{3}','{4}')",
-                        "RSA_TS_KEY2", RSA1024, 1024, rsa_key.public_key,
+                        "RSA_TS_KEY2", RSA2048, 2048, rsa_key.public_key,
                         rsa_key.private_key);
       sqlite3_exec(db, sql.c_str(), nullptr, nullptr, &zErrMsg);
       rsa_key = rsa_generator_key(common::OperationType::GMSSL); // RSA_TS_KEY3
       sql = fmt::format("INSERT INTO KeyPair_info "
                         "(key_name,key_type,key_mod,pub_pem,pri_pem) VALUES "
                         "('{0}',{1},{2},'{3}','{4}')",
-                        "RSA_TS_KEY3", RSA1024, 1024, rsa_key.public_key,
+                        "RSA_TS_KEY3", RSA2048, 2048, rsa_key.public_key,
                         rsa_key.private_key);
       sqlite3_exec(db, sql.c_str(), nullptr, nullptr, &zErrMsg);
 
@@ -167,14 +167,24 @@ public:
     sqlite3_get_table(db, sql, &azResult, &nrow, &ncolumn, &zErrMsg);
     // printf("row:%d,column:%d/n",nrow,ncolumn);
     if (std::string(azResult[8]) == "1") {
-      key_type = reinterpret_cast<uint8_t *>(RSA1024);
-    } else if (std::string(azResult[8]) == "2") {
       key_type = reinterpret_cast<uint8_t *>(RSA2048);
     } else if (std::string(azResult[8]) == "3") {
       key_type = reinterpret_cast<uint8_t *>(SM2);
     }
     return common::Keypair{std::string(azResult[10]),
                            std::string(azResult[11])};
+  }
+
+  std::string get_default_cert() override {
+    const char *sql = "SELECT cert_file FROM TS_cert WHERE default_cert = 1";
+    // const char *sql = "SELECT key_name FROM TS_cert WHERE default_cert = 1";
+    int nrow = 0;
+    int ncolumn = 0;
+    char **azResult;
+    char *zErrMsg = nullptr;
+    sqlite3_get_table(db, sql, &azResult, &nrow, &ncolumn, &zErrMsg);
+    std::string varname(azResult[1]);
+    return varname;
   }
 
   void close_db() { sqlite3_close(db); }

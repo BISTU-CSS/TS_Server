@@ -91,9 +91,10 @@ public:
     // data_manager_->insert_log(ASN1_INTEGER_get(b),"", "", time, user_ip,
     // ts_info);
     int id = create_ts_resp((unsigned char *)request.c_str(), request_length,
-                            nullptr, nullptr, nullptr, byOut1, &tsrep_len,
+                            nullptr, byOut1, &tsrep_len,
                             byOut2, &tsrep_len2);
     std::cout << id << std::endl;
+
     return ts_info;
   }
 
@@ -304,10 +305,10 @@ private:
 
       EVP_PKEY *pkey = X509_get_pubkey(cert);
       RSA *rsa_key = EVP_PKEY_get1_RSA(pkey);
-      if (RSA_size(rsa_key) == 128) {
-        key_type = reinterpret_cast<uint8_t *>(RSA1024);
+      if (RSA_size(rsa_key) == 256) {
+        key_type = reinterpret_cast<uint8_t *>(RSA2048);
       } else {
-        key_type = reinterpret_cast<uint8_t *>(RSA2048); //暂不支持
+        //暂不支持
       }
 
       BIO *pub = BIO_new(BIO_s_mem());
@@ -325,10 +326,10 @@ private:
       EVP_PKEY *pkey = X509_get_pubkey(cert);
       RSA *rsa_key = EVP_PKEY_get1_RSA(pkey);
 
-      if (RSA_size(rsa_key) == 128) {
-        key_type = reinterpret_cast<uint8_t *>(RSA1024);
+      if (RSA_size(rsa_key) == 256) {
+        key_type = reinterpret_cast<uint8_t *>(RSA2048);
       } else {
-        key_type = reinterpret_cast<uint8_t *>(RSA2048); //暂不支持
+        //暂不支持
       }
 
       BIO *pub = BIO_new(BIO_s_mem());
@@ -450,7 +451,7 @@ private:
 
   static ASN1_INTEGER *tsa_serial_cb(TS_RESP_CTX *ctx, UNUSED void *data) {
     ASN1_INTEGER *serial = next_serial(SERIAL_FILE);
-
+    std::cout<<"dsadsad"<<std::endl;
     if (!serial) {
       TS_RESP_CTX_set_status_info(ctx, TS_STATUS_REJECTION,
                                   "Error during serial number "
@@ -464,14 +465,14 @@ private:
   }
 
   int create_ts_resp(unsigned char *tsreq, int tsreqlen, X509 *root_cert,
-                     X509 *cert, EVP_PKEY *pkey, unsigned char *tsresp,
+                     unsigned char *tsresp,
                      int *tsresplen, unsigned char *tstoken, int *tstokenlen) {
 
     int nRet = 0;
     STACK_OF(X509) *x509_cacerts = nullptr;
     BIO *req_bio = nullptr;
     ASN1_OBJECT *policy_obj1 = nullptr;
-    ASN1_GENERALIZEDTIME *asn1_time = nullptr;
+    //ASN1_GENERALIZEDTIME *asn1_time = nullptr;
 
     TS_RESP *ts_resp = nullptr;
     TS_RESP_CTX *ts_resp_ctx = nullptr;
@@ -501,7 +502,6 @@ private:
       // RetVal = TS_MemErr;
       goto end;
     }
-
     if (BIO_set_close(req_bio, BIO_CLOSE)) {
     } // BIO_free() free BUF_MEM
     if (BIO_write(req_bio, tsreq, tsreqlen) != tsreqlen) {
@@ -516,13 +516,14 @@ private:
       goto end;
     }
 
-    ASN1_GENERALIZEDTIME_set_string(asn1_time, get_time().c_str());
+    //ASN1_GENERALIZEDTIME_set_string(asn1_time, get_time().c_str());
 
     // Setting serial number provider callback.
-    {
+   {
       mutex_.lock();
       TS_RESP_CTX_set_serial_cb(ts_resp_ctx, tsa_serial_cb, nullptr);
       get_serial(SERIAL_FILE, serialNumber);
+      mutex_.unlock();
     }
 
     // Setting TSA signer certificate chain.
@@ -535,14 +536,14 @@ private:
     }
 
     // Setting TSA signer certificate.
-    nRet = TS_RESP_CTX_set_signer_cert(ts_resp_ctx, cert);
+    nRet = TS_RESP_CTX_set_signer_cert(ts_resp_ctx, tsa_x509_);
     if (!nRet) {
       // RetVal = TS_CertErr;
       goto end;
     }
 
     // Setting TSA signer private key.
-    nRet = TS_RESP_CTX_set_signer_key(ts_resp_ctx, pkey);
+    nRet = TS_RESP_CTX_set_signer_key(ts_resp_ctx, tsa_pri_key_);
     if (!nRet) {
       // RetVal = TS_KeyErr;
       goto end;
@@ -562,13 +563,7 @@ private:
     }
 
     // Setting the acceptable one-way hash algorithms.
-    nRet = TS_RESP_CTX_add_md(ts_resp_ctx, EVP_md5());
-    if (!nRet) {
-      // RetVal = TS_RespHashErr;
-      goto end;
-    }
-
-    nRet = TS_RESP_CTX_add_md(ts_resp_ctx, EVP_sha1());
+    nRet = TS_RESP_CTX_add_md(ts_resp_ctx, EVP_sha256());   //可以set很多个
     if (!nRet) {
       // RetVal = TS_RespHashErr;
       goto end;
@@ -576,7 +571,7 @@ private:
     // 设置时间
 
     // Setting guaranteed time stamp accuracy.
-    nRet = TS_RESP_CTX_set_accuracy(ts_resp_ctx, 0, 500, 100);
+    nRet = TS_RESP_CTX_set_accuracy(ts_resp_ctx, 0, 1, 0);
     if (!nRet) {
       // RetVal = TS_AccurErr;
       goto end;
@@ -597,6 +592,7 @@ private:
 
     // Creating the response.
     ts_resp = TS_RESP_create_response(ts_resp_ctx, req_bio);
+    std::cout << "dsadsad"<<  TS_MSG_IMPRINT_get_msg(TS_TST_INFO_get_msg_imprint(TS_RESP_get_tst_info(ts_resp)))->data << std::endl;
     if (!ts_resp)
       if (!nRet) {
         // RetVal = TS_NewRespErr;
@@ -652,14 +648,24 @@ private:
 
   void set_tsa_default_info() {
     // 从数据库中读取PEM格式的证书，用于把证书数据放到时间戳中
-    // const unsigned char *data, size_t len,
-    //    X509 *x509;
-    //    BIO *bio = BIO_new_mem_buf(data, len);
-    //    x509 = PEM_read_bio_X509(bio, NULL, NULL, NULL);
-    //
+     //std::string root_cert_pem = ;
+     std::string tsa_cert_pem = data_manager_->get_default_cert();
+     // read root list
+
+
+     // read default cert
+     BIO *bio = BIO_new_mem_buf(tsa_cert_pem.c_str(), tsa_cert_pem.length());
+     tsa_x509_ = PEM_read_bio_X509(bio, NULL, NULL, NULL);
+
     //    // 从数据库中读取基本信息，用于放到变量中
-    //    //tsa_default_keypair_ =
-    //    data_manager_->get_default_cert_key_pem(&tsa_default_key_type_);
+     common::Keypair keypair = data_manager_->get_default_cert_key_pem(&tsa_key_type_);
+     BIO *pri_key_bio = BIO_new_mem_buf(
+         reinterpret_cast<const unsigned char *>(keypair.private_key.c_str()), -1);
+     RSA * rsa_key =
+         PEM_read_bio_RSAPrivateKey(pri_key_bio, nullptr, nullptr, nullptr);
+      EVP_PKEY_set1_RSA(tsa_pri_key_, rsa_key);
+
+
     //    //tsa_cert_issues_ = ;
     //    //tsa_cert_theme_ = ;
     //    //tsa_default_sign_id_ = ;
@@ -682,11 +688,13 @@ private:
   std::unique_ptr<ndsec::data::DataManager> data_manager_;
   common::robust_mutex mutex_;
   // 时间戳服务器基本信息，初始化时读入
+  X509 *tsa_x509_;
+  uint8_t tsa_key_type_;
+  EVP_PKEY *tsa_pri_key_;
   // std::string tsa_cert_issues_;
   // std::string tsa_cert_theme_;
   std::string tsa_name;
-  // common::Keypair tsa_default_keypair_;
-  // uint8_t tsa_default_key_type_;
+
   // uint32_t tsa_default_hash_id_;
   // uint32_t tsa_default_sign_id_;
 };

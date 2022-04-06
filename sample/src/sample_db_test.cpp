@@ -164,24 +164,24 @@ end:
 int main(int argc, UNUSED char *argv[]) {
   if (argc) {
   };
-  int result_length = 0;
-  std::string a = "3214";
-  unsigned char result[1000];
-  CreateTSReq(SGD_SHA1, true, reinterpret_cast<unsigned char *>(a.data()),
-              a.length(), result, &result_length);
-  std::cout << result_length << std::endl;
-
-  std::string add((char *)result, result_length);
-  std::cout << add << std::endl;
-
-  TS_REQ *ts_req = nullptr;
-  const unsigned char *t = reinterpret_cast<const unsigned char *>(add.data());
-  d2i_TS_REQ(&ts_req, &t, result_length);
-  std::cout << TS_REQ_get_version(ts_req) << std::endl;
-  TS_MSG_IMPRINT *msg_imprint = TS_REQ_get_msg_imprint(ts_req);
-
-  std::cout << TS_MSG_IMPRINT_get_msg(msg_imprint)->data << std::endl;
-  std::cout << TS_MSG_IMPRINT_get_msg(msg_imprint)->length << std::endl;
+//  int result_length = 0;
+//  std::string a = "3214";
+//  unsigned char result[1000];
+//  CreateTSReq(SGD_SHA1, true, reinterpret_cast<unsigned char *>(a.data()),
+//              a.length(), result, &result_length);
+//  std::cout << result_length << std::endl;
+//
+//  std::string add((char *)result, result_length);
+//  std::cout << add << std::endl;
+//
+//  TS_REQ *ts_req = nullptr;
+//  const unsigned char *t = reinterpret_cast<const unsigned char *>(add.data());
+//  d2i_TS_REQ(&ts_req, &t, result_length);
+//  std::cout << TS_REQ_get_version(ts_req) << std::endl;
+//  TS_MSG_IMPRINT *msg_imprint = TS_REQ_get_msg_imprint(ts_req);
+//
+//  std::cout << TS_MSG_IMPRINT_get_msg(msg_imprint)->data << std::endl;
+//  std::cout << TS_MSG_IMPRINT_get_msg(msg_imprint)->length << std::endl;
 
   // const char *filenmame = "/home/sunshuo/Desktop/db/serial";
 
@@ -205,4 +205,9 @@ int main(int argc, UNUSED char *argv[]) {
   //  data_manager->init_db();
   //  // data_manager->insert_log("a","b","c","d","e");
   //  data_manager->get_default_cert_key_pem(nullptr);
+  std::unique_ptr<ndsec::data::DataManager> data_manager;
+  data_manager = ndsec::data::DataManager::make();
+  data_manager->init_db();
+  std::cout<<data_manager->get_default_cert();
+
 }
