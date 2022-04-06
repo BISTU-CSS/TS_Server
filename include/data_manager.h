@@ -50,6 +50,8 @@ public:
 
   virtual std::string get_default_cert() = 0;
 
+  virtual std::vector<std::string> get_root_cert() = 0;
+
   static std::unique_ptr<DataManager> make();
 };
 } // namespace ndsec::data

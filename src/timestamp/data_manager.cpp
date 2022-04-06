@@ -187,6 +187,29 @@ public:
     return varname;
   }
 
+  std::vector<std::string> get_root_cert() override {
+    std::vector<std::string> vector;
+    int nrow = 0;
+    int ncolumn = 0;
+    char **azResult;
+    char *zErrMsg = nullptr;
+    const char *sql = "SELECT COUNT(*) FROM Trusted_cert";
+    sqlite3_get_table(db, sql, &azResult, &nrow, &ncolumn, &zErrMsg);
+    std::string num(azResult[1]);
+
+    sql = "SELECT cert_file FROM Trusted_cert";
+    sqlite3_get_table(db, sql, &azResult, &nrow, &ncolumn, &zErrMsg);
+    for(int i = 1;i <= atoi(num.c_str());i++){
+      if(azResult[i] == nullptr){
+        break;
+      }
+      std::string varname(azResult[i]);
+      vector.push_back(varname);
+    }
+
+    return vector;
+  }
+
   void close_db() { sqlite3_close(db); }
 
 private:

@@ -680,7 +680,13 @@ private:
      //std::string root_cert_pem = ;
      std::string tsa_cert_pem = data_manager_->get_default_cert();
      // read root list
+     std::vector<std::string> ca_list = data_manager_->get_root_cert();
 
+     for(size_t i = 0; i < ca_list.size(); ++i){
+     //  std::cout << ca_list[i] << std::endl;
+
+
+     }
 
      // read default cert
      BIO *bio = BIO_new_mem_buf(tsa_cert_pem.c_str(), tsa_cert_pem.length());
