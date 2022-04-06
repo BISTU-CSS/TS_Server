@@ -10,6 +10,7 @@
 #include "ndsec_ts_error.h"
 #include "openssl/ts.h"
 #include "time_adaptor.h"
+#include "openssl/sm3.h"
 
 #include <sys/time.h>
 
@@ -39,30 +40,33 @@ public:
                                const std::string &data,
                                UNUSED uint64_t data_length) override {
     //判断hashid是否与default的相同
-    std::string hash_result;
-    if (hash_id == SGD_SM3) {
-      hash_result = hash_operator(common::OperationType::GMSSL,
-                                  common::HashType::SM3, data);
-    } else if (hash_id == SGD_SHA1) {
-      hash_result = hash_operator(common::OperationType::GMSSL,
-                                  common::HashType::SHA1, data);
-    } else if (hash_id == SGD_SHA256) {
-      hash_result = hash_operator(common::OperationType::GMSSL,
-                                  common::HashType::SHA256, data);
-    }
-
     unsigned char req_buffer[1000];
     int req_buffer_length = 0;
-    if (req_type == 0) {
-      //包含时间戳服务器的证书
-      create_ts_req(hash_id, true,
-                    reinterpret_cast<unsigned char *>(hash_result.data()),
-                    hash_result.length(), req_buffer, &req_buffer_length);
-    } else if (req_type == 1) {
-      //不包含时间戳服务器的证书
-      create_ts_req(hash_id, false,
-                    reinterpret_cast<unsigned char *>(hash_result.data()),
-                    hash_result.length(), req_buffer, &req_buffer_length);
+
+    if (hash_id == SGD_SM3) {
+      unsigned char hash_buffer[SM3_DIGEST_LENGTH];
+      sm3(reinterpret_cast<const unsigned char *>(data.c_str()),data.size(),hash_buffer);
+      create_ts_req(hash_id, !req_type,
+                    hash_buffer,
+                    SM3_DIGEST_LENGTH, req_buffer, &req_buffer_length);
+    } else if (hash_id == SGD_SHA1) {
+      unsigned char hash_buffer[SHA_DIGEST_LENGTH];
+      SHA_CTX sha1;
+      SHA1_Init(&sha1);
+      SHA1_Update(&sha1, data.c_str(), data.size());
+      SHA1_Final(hash_buffer, &sha1);
+      create_ts_req(hash_id, !req_type,
+                    hash_buffer,
+                    SHA_DIGEST_LENGTH, req_buffer, &req_buffer_length);
+    } else if (hash_id == SGD_SHA256) {
+      unsigned char hash_buffer[SHA256_DIGEST_LENGTH];
+      SHA256_CTX sha256;
+      SHA256_Init(&sha256);
+      SHA256_Update(&sha256, data.c_str(), data.size());
+      SHA256_Final(hash_buffer, &sha256);
+      create_ts_req(hash_id, !req_type,
+                    hash_buffer,
+                    SHA256_DIGEST_LENGTH, req_buffer, &req_buffer_length);
     }
     std::string res((char *)req_buffer, req_buffer_length);
     return res;
@@ -90,7 +94,8 @@ public:
     int tsrep_len2;
     // data_manager_->insert_log(ASN1_INTEGER_get(b),"", "", time, user_ip,
     // ts_info);
-    int id = create_ts_resp((unsigned char *)request.c_str(), request_length,
+
+    int id = create_ts_resp((unsigned char *)request.data(), request_length,
                             nullptr, byOut1, &tsrep_len,
                             byOut2, &tsrep_len2);
     std::cout << id << std::endl;
@@ -354,6 +359,7 @@ private:
     X509_ALGOR *x509_algor = nullptr;
     ASN1_INTEGER *nonce_asn1 = nullptr;
     TS_REQ *ts_req = nullptr;
+    ASN1_OBJECT *policy_obj1 = nullptr;
 
     // ts req ********************************************************
     ts_req = TS_REQ_new();
@@ -409,6 +415,9 @@ private:
     if (!nonce_asn1) {
       goto end;
     }
+    policy_obj1 = OBJ_txt2obj("1.2.3.4.5.6.7.8", 0);
+
+    TS_REQ_set_policy_id(ts_req,policy_obj1);
 
     nRet = TS_REQ_set_nonce(ts_req, nonce_asn1);
     if (!nRet) {
@@ -550,7 +559,7 @@ private:
     }
 
     // Setting default policy OID.
-    policy_obj1 = OBJ_txt2obj("1.2.3.4.1", 0);
+    policy_obj1 = OBJ_txt2obj("1.2.3.4.5.6.7.8", 0);
     if (!policy_obj1) {
       // RetVal = TS_MemErr;
       goto end;
@@ -592,7 +601,27 @@ private:
 
     // Creating the response.
     ts_resp = TS_RESP_create_response(ts_resp_ctx, req_bio);
-    std::cout << "dsadsad"<<  TS_MSG_IMPRINT_get_msg(TS_TST_INFO_get_msg_imprint(TS_RESP_get_tst_info(ts_resp)))->data << std::endl;
+
+    {
+      auto tst_info = TS_TST_INFO_new();
+      TS_TST_INFO_set_version(tst_info, 4);
+      TS_RESP_set_tst_info(ts_resp, nullptr, tst_info);
+      auto a = TS_RESP_get_tst_info(ts_resp);
+      auto b = TS_TST_INFO_get_version(a);
+      std::cout << b << std::endl;
+      std::cout<<"ERROR"<<std::endl;
+
+      std::cout<<ASN1_INTEGER_get(TS_STATUS_INFO_get0_status(TS_RESP_get_status_info(ts_resp)))<<std::endl;
+      std::cout<<ASN1_INTEGER_get(TS_STATUS_INFO_get0_failure_info(TS_RESP_get_status_info(ts_resp)))<<std::endl;
+      std::cout<<"DSDS"<<std::endl;
+
+      for(int i = 0;i<10;i++){
+        std::cout<< ASN1_BIT_STRING_get_bit(TS_STATUS_INFO_get0_failure_info(TS_RESP_get_status_info(ts_resp)), i)<<std::endl;
+      }
+      std::cout<<"DSDS"<<std::endl;
+
+    }
+
     if (!ts_resp)
       if (!nRet) {
         // RetVal = TS_NewRespErr;
@@ -663,8 +692,8 @@ private:
          reinterpret_cast<const unsigned char *>(keypair.private_key.c_str()), -1);
      RSA * rsa_key =
          PEM_read_bio_RSAPrivateKey(pri_key_bio, nullptr, nullptr, nullptr);
-      EVP_PKEY_set1_RSA(tsa_pri_key_, rsa_key);
-
+     tsa_pri_key_ = EVP_PKEY_new();
+     EVP_PKEY_set1_RSA(tsa_pri_key_, rsa_key);
 
     //    //tsa_cert_issues_ = ;
     //    //tsa_cert_theme_ = ;
