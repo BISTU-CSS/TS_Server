@@ -77,8 +77,6 @@ public:
                                 UNUSED const std::string &request,
                                 UNUSED uint64_t request_length) override {
     //判断sign id是否与default的相同
-    std::string time = get_time_from_unix_utc();
-    // 1.获取默认证书
     if (sign_id == SGD_SHA1_RSA) {
 
     } else if (sign_id == SGD_SHA256_RSA) {
@@ -95,12 +93,13 @@ public:
     // data_manager_->insert_log(ASN1_INTEGER_get(b),"", "", time, user_ip,
     // ts_info);
 
-    int id = create_ts_resp((unsigned char *)request.data(), request_length,
-                            nullptr, byOut1, &tsrep_len,
+    int id = create_ts_resp((unsigned char *)request.data(), (int)request_length,
+                            root_x509_[0], byOut1, &tsrep_len,
                             byOut2, &tsrep_len2);
     std::cout << id << std::endl;
 
-    return ts_info;
+    std::string res((char *)byOut1, tsrep_len);
+    return res;
   }
 
   bool verify_ts_info(UNUSED const std::string &response,
@@ -388,11 +387,11 @@ private:
     if (!(x509_algor->algorithm)) {
       goto end;
     }
-    x509_algor->parameter = ASN1_TYPE_new();
-    if (!(x509_algor->parameter)) {
-      goto end;
-    }
-    x509_algor->parameter->type = V_ASN1_NULL;
+//    x509_algor->parameter = ASN1_TYPE_new();
+//    if (!(x509_algor->parameter)) {
+//      goto end;
+//    }
+//    x509_algor->parameter->type = V_ASN1_NULL;
 
     msg_imprint = TS_MSG_IMPRINT_new();
     if (!msg_imprint) {
@@ -406,6 +405,7 @@ private:
     if (!nRet) {
       goto end;
     }
+
     nRet = TS_REQ_set_msg_imprint(ts_req, msg_imprint);
     if (!nRet) {
       goto end;
@@ -415,8 +415,7 @@ private:
     if (!nonce_asn1) {
       goto end;
     }
-    policy_obj1 = OBJ_txt2obj("1.2.3.4.5.6.7.8", 0);
-
+    policy_obj1 = OBJ_txt2obj("1.2.3.4.5.6.7.8", true);
     TS_REQ_set_policy_id(ts_req,policy_obj1);
 
     nRet = TS_REQ_set_nonce(ts_req, nonce_asn1);
@@ -484,6 +483,7 @@ private:
     //ASN1_GENERALIZEDTIME *asn1_time = nullptr;
 
     TS_RESP *ts_resp = nullptr;
+    ts_resp = TS_RESP_new();
     TS_RESP_CTX *ts_resp_ctx = nullptr;
     unsigned char *pbTmp;
     OpenSSL_add_all_algorithms();
@@ -496,12 +496,10 @@ private:
         goto end;
       }
 
-      if (root_cert != nullptr) {
-        nRet = sk_X509_push(x509_cacerts, root_cert);
-        if (!nRet) {
-          // RetVal = TS_RootCACertErr;
-          goto end;
-        }
+      nRet = sk_X509_push(x509_cacerts, root_cert);
+      if (!nRet) {
+        // RetVal = TS_RootCACertErr;
+        goto end;
       }
     }
     // ts response ********************************************************
@@ -511,12 +509,10 @@ private:
       // RetVal = TS_MemErr;
       goto end;
     }
+
     if (BIO_set_close(req_bio, BIO_CLOSE)) {
     } // BIO_free() free BUF_MEM
-    if (BIO_write(req_bio, tsreq, tsreqlen) != tsreqlen) {
-      // RetVal = TS_ReqErr;
-      goto end;
-    }
+    BIO_write(req_bio, tsreq, tsreqlen);
 
     // Setting up response generation context.
     ts_resp_ctx = TS_RESP_CTX_new();
@@ -559,7 +555,7 @@ private:
     }
 
     // Setting default policy OID.
-    policy_obj1 = OBJ_txt2obj("1.2.3.4.5.6.7.8", 0);
+    policy_obj1 = OBJ_txt2obj("1.2.3.4.5.6.7.8", true);
     if (!policy_obj1) {
       // RetVal = TS_MemErr;
       goto end;
@@ -580,7 +576,7 @@ private:
     // 设置时间
 
     // Setting guaranteed time stamp accuracy.
-    nRet = TS_RESP_CTX_set_accuracy(ts_resp_ctx, 0, 1, 0);
+    nRet = TS_RESP_CTX_set_accuracy(ts_resp_ctx, 1, 500, 100);
     if (!nRet) {
       // RetVal = TS_AccurErr;
       goto end;
@@ -601,26 +597,6 @@ private:
 
     // Creating the response.
     ts_resp = TS_RESP_create_response(ts_resp_ctx, req_bio);
-
-    {
-      auto tst_info = TS_TST_INFO_new();
-      TS_TST_INFO_set_version(tst_info, 4);
-      TS_RESP_set_tst_info(ts_resp, nullptr, tst_info);
-      auto a = TS_RESP_get_tst_info(ts_resp);
-      auto b = TS_TST_INFO_get_version(a);
-      std::cout << b << std::endl;
-      std::cout<<"ERROR"<<std::endl;
-
-      std::cout<<ASN1_INTEGER_get(TS_STATUS_INFO_get0_status(TS_RESP_get_status_info(ts_resp)))<<std::endl;
-      std::cout<<ASN1_INTEGER_get(TS_STATUS_INFO_get0_failure_info(TS_RESP_get_status_info(ts_resp)))<<std::endl;
-      std::cout<<"DSDS"<<std::endl;
-
-      for(int i = 0;i<10;i++){
-        std::cout<< ASN1_BIT_STRING_get_bit(TS_STATUS_INFO_get0_failure_info(TS_RESP_get_status_info(ts_resp)), i)<<std::endl;
-      }
-      std::cout<<"DSDS"<<std::endl;
-
-    }
 
     if (!ts_resp)
       if (!nRet) {
@@ -682,10 +658,10 @@ private:
      // read root list
      std::vector<std::string> ca_list = data_manager_->get_root_cert();
 
-     for(size_t i = 0; i < ca_list.size(); ++i){
+     for(auto & i : ca_list){
      //  std::cout << ca_list[i] << std::endl;
-
-
+       BIO *root_bio = BIO_new_mem_buf(i.c_str(), i.length());
+       root_x509_.push_back(PEM_read_bio_X509(root_bio, NULL, NULL, NULL));
      }
 
      // read default cert
@@ -726,10 +702,12 @@ private:
   X509 *tsa_x509_;
   uint8_t tsa_key_type_;
   EVP_PKEY *tsa_pri_key_;
+
+  std::vector<X509 *> root_x509_;
+
+  std::string tsa_name;
   // std::string tsa_cert_issues_;
   // std::string tsa_cert_theme_;
-  std::string tsa_name;
-
   // uint32_t tsa_default_hash_id_;
   // uint32_t tsa_default_sign_id_;
 };

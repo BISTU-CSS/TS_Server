@@ -172,6 +172,7 @@ void CreateTSResponseCall::Proceed() {
       std::string package = time_manager->build_ts_response(
           ctx_.peer(), request_.uisignaturealgid(), request_.puctsresquest(),
           request_.uitsrequestlength()); //结构体转换为string
+      std::cout<<"RESPONSE:"<<package<<std::endl;
       reply_.set_puitsresponse(package);
       reply_.set_puitsresponselength(package.length());
       reply_.set_code(timestamp::GRPC_STF_TS_OK);
@@ -227,9 +228,9 @@ void GetTSInfoCall::Proceed() {
     if (session_pool->is_session_exist(session_handle)) {
       // session存在
       // 证书的通用名称 数据库里取得
-      auto *TSA_ISSUENAME = (std::string *)"NDSEC_TSA";
+      std::string TSA_ISSUENAME = "NDSEC_TSA";
       // time_manager->
-      reply_.set_allocated_pucissuername(TSA_ISSUENAME);
+      reply_.set_pucissuername(TSA_ISSUENAME);
 
       // reply_.set_allocated_puctime();
       // reply_.set_puitimelength();
