@@ -651,6 +651,87 @@ private:
     return atoi(serialNumber.c_str());
   }
 
+  int ts_verify_token( unsigned char *data, int datalen, X509* rootcacert, X509* cacert,
+                             unsigned char *tstoken, int tstokenlen)
+  {
+    bool bRet = false;
+    int nRet = 0, RetVal = 0;
+
+    PKCS7 *ts_token = NULL;
+    TS_VERIFY_CTX *ts_verify_ctx = NULL;
+
+    // verify ts token ********************************************************
+    // ts token
+    unsigned char *pbTmp;
+    pbTmp = tstoken;
+    ts_token = d2i_PKCS7(NULL, (const unsigned char **)&pbTmp, tstokenlen);
+    if (!ts_token)
+    {
+      //RetVal = TS_RespErr;
+      //goto end;
+    }
+
+    // verify ctx
+    ts_verify_ctx = TS_VERIFY_CTX_new();
+    if (!ts_verify_ctx)
+    {
+      //RetVal = TS_MemErr;
+     // goto end;
+    }
+
+    TS_VERIFY_CTX_set_flags(ts_verify_ctx, TS_VFY_VERSION | TS_VFY_DATA | TS_VFY_SIGNATURE | TS_VFY_SIGNER);
+    // data
+    BIO *data_bio = BIO_new(BIO_s_mem());
+    BIO_set_close(data_bio, BIO_CLOSE); // BIO_free() free BUF_MEM
+
+    if (BIO_write(data_bio, data, datalen) != datalen)
+    {
+      //RetVal = TS_RespErr;
+     // goto end;
+    }
+
+    TS_VERIFY_CTX_set_data(ts_verify_ctx, data_bio);
+
+    // x509 store
+    auto store = X509_STORE_new();
+
+    if( rootcacert )
+    {
+      nRet = X509_STORE_add_cert(store, rootcacert);
+      if (!nRet)
+      {
+       // RetVal = TS_RootCACertErr;
+       // goto end;
+      }
+    }
+
+    if ( cacert )
+    {
+      nRet = X509_STORE_add_cert(store, cacert);
+      if (!nRet)
+      {
+      //  RetVal = TS_CACertErr;
+       // goto end;
+      }
+    }
+    TS_VERIFY_CTX_set_store(ts_verify_ctx, store);
+    // verify
+    nRet = TS_RESP_verify_token(ts_verify_ctx, ts_token);
+    if (!nRet)
+    {
+     // RetVal = TS_VerifyErr;
+    //  goto end;
+    }
+
+//  end:
+//    if (ts_token)
+//      PKCS7_free(ts_token);
+//    if (ts_verify_ctx)
+//      TS_VERIFY_CTX_free(ts_verify_ctx);
+//
+   return RetVal;
+  }
+
   void set_tsa_default_info() {
     // 从数据库中读取PEM格式的证书，用于把证书数据放到时间戳中
      //std::string root_cert_pem = ;
