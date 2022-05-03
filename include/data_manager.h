@@ -23,11 +23,10 @@ public:
 
   /**
    *
-   * @param ts_issue_ 签发者（颁发者），即CA/ROOT证书的相关信息
-   * @param ts_certificate_ 本证书的相关信息（使用者）
+   * @param ts_certificate_ 本证书的相关信息
    * @param ts_time_ 时间戳的时间
    * @param user_ip_ 用户的ip地址
-   * @param ts_info_ 时间戳结构，ASN.1
+   * @param ts_info_ 时间戳结构，Base64
    * @return
    */
   virtual void insert_log(uint64_t ts_id, const std::string &ts_issue_,

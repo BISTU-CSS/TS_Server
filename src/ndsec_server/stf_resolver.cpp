@@ -138,11 +138,11 @@ void CreateTSRequestCall::Proceed() {
       if (request_.uireqtype() != 0 || request_.uireqtype() != 1) {
         reply_.set_code(timestamp::GRPC_STF_TS_INVALID_REQUEST); //非法的申请
       }
-      std::cout << request_.pucindata() << std::endl;
+      //std::cout << request_.pucindata() << std::endl;
       std::string request = time_manager->build_ts_request(
           request_.uireqtype(), request_.uihashalgid(), request_.pucindata(),
           request_.uiindatalength());
-      std::cout << request << std::endl;
+     // std::cout << request << std::endl;
       reply_.set_puctsrequest(request);
       reply_.set_puctsrequestlength(request.length());
       reply_.set_code(timestamp::GRPC_STF_TS_OK);
@@ -172,7 +172,7 @@ void CreateTSResponseCall::Proceed() {
       std::string package = time_manager->build_ts_response(
           ctx_.peer(), request_.uisignaturealgid(), request_.puctsresquest(),
           request_.uitsrequestlength()); //结构体转换为string
-      std::cout<<"RESPONSE:"<<package<<std::endl;
+     // std::cout<<"RESPONSE:"<<package<<std::endl;
       reply_.set_puitsresponse(package);
       reply_.set_puitsresponselength(package.length());
       reply_.set_code(timestamp::GRPC_STF_TS_OK);
