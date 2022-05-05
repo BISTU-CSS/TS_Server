@@ -280,6 +280,7 @@ public:
     data_manager_->init_db();
     mutex_.init();
     set_tsa_default_info();
+    tsa_signature_nid_ = X509_get_signature_nid(tsa_x509_);
   }
 
   std::string get_time() override { return get_time_from_unix_utc(); }
@@ -315,6 +316,8 @@ public:
       create_ts_req(hash_id, !req_type,
                     hash_buffer,
                     SHA256_DIGEST_LENGTH, req_buffer, &req_buffer_length);
+    } else{
+      throw common::Exception(STF_TS_INVALID_ALG);
     }
     std::string res((char *)req_buffer, req_buffer_length);
     return res;
@@ -325,27 +328,26 @@ public:
                                 UNUSED const std::string &request,
                                 UNUSED uint64_t request_length) override {
     //判断sign id是否与default的相同
-    if (sign_id == SGD_SHA1_RSA) {
+    judge_nid(sign_id,tsa_signature_nid_);
 
-    } else if (sign_id == SGD_SHA256_RSA) {
-
-    } else if (sign_id == SGD_SM3_SM2) {
-
-    } else if (sign_id == SGD_SM3_RSA) {
-
+    //判断ts request的正确性
+    TS_REQ *ts_req;
+    const unsigned char *t = reinterpret_cast<const unsigned char *>(request.data());
+    d2i_TS_REQ(&ts_req, &t,request_length);
+    if(ts_req == nullptr){
+      throw common::Exception(STF_TS_INVALID_REQUEST);
     }
 
     std::string ts_time;
-
     unsigned char byOut1[10240];
     std::string time;
-    int tsrep_len;
+    int tsrep_len = 0;
 
     int id = create_ts_resp((unsigned char *)request.data(), (int)request_length,
                             root_x509_[0], byOut1, &tsrep_len,
                             &time);
 
-    std::cout<<time<<std::endl;
+    //std::cout<<time<<std::endl;
     std::string res((char *)byOut1, tsrep_len);
     std::string base64_resp;
     Base64::Encode(res,&base64_resp);
@@ -358,6 +360,56 @@ public:
                       UNUSED uint32_t sign_id,
                       UNUSED const std::string &tsa_cert,
                       UNUSED uint64_t cert_length) override {
+    TS_RESP *ts_resp = nullptr;
+    ts_resp = TS_RESP_new();
+    const unsigned char *t = reinterpret_cast<const unsigned char *>(response.data());
+    d2i_TS_RESP(&ts_resp,&t,response_length);
+    if(ts_resp == nullptr){
+      throw common::Exception(STF_TS_INVALID_DATAFORMAT);
+    }
+
+    std::cout<<ASN1_STRING_get0_data(TS_TST_INFO_get_time(TS_RESP_get_tst_info(ts_resp)))<<std::endl;
+    std::cout<<ASN1_STRING_get0_data(TS_MSG_IMPRINT_get_msg(TS_TST_INFO_get_msg_imprint(TS_RESP_get_tst_info(ts_resp))))<<std::endl;
+    std::cout<<TS_MSG_IMPRINT_get_msg(TS_TST_INFO_get_msg_imprint(TS_RESP_get_tst_info(ts_resp)))<<std::endl;
+
+    PKCS7 *p7 = TS_RESP_get_token(ts_resp);
+    unsigned char byOut[10240];
+    unsigned char *pbTmp;
+    memset(byOut, 0, sizeof(byOut));
+    pbTmp = byOut;
+    UNUSED int nOutLen = i2d_PKCS7(p7, &pbTmp);
+    const char *plainData = "test plain data";
+    UNUSED unsigned int plainDataLen = (unsigned int)strlen(plainData);
+
+    int nid = OBJ_obj2nid(p7->type);
+//    ts_verify_token(byOut,
+//                    nOutLen,
+//                    root_x509_[0],TS_RESP_get_token(ts_resp));
+    if(nid == NID_pkcs7_signed){
+      std::cout<<nid<<std::endl;
+      std::cout<<OBJ_obj2nid(p7->d.sign->contents->type)<<std::endl;
+      TS_VERIFY_CTX *ts_verify_ctx = NULL;
+      ts_verify_ctx = TS_VERIFY_CTX_new();
+      BIO *data_bio = BIO_new(BIO_s_mem());
+      BIO_write(data_bio, ASN1_STRING_get0_data(TS_MSG_IMPRINT_get_msg(TS_TST_INFO_get_msg_imprint(TS_RESP_get_tst_info(ts_resp)))), TS_MSG_IMPRINT_get_msg(TS_TST_INFO_get_msg_imprint(TS_RESP_get_tst_info(ts_resp)))->length);
+      //TS_VERIFY_CTX_set_data(ts_verify_ctx, data_bio);
+      TS_VERIFY_CTX_set_imprint(ts_verify_ctx,TS_MSG_IMPRINT_get_msg(TS_TST_INFO_get_msg_imprint(TS_RESP_get_tst_info(ts_resp)))->data,TS_MSG_IMPRINT_get_msg(TS_TST_INFO_get_msg_imprint(TS_RESP_get_tst_info(ts_resp)))->length);
+
+      TS_VERIFY_CTX_set_flags(ts_verify_ctx, TS_VFY_VERSION | TS_VFY_IMPRINT );
+      int nRet =  TS_RESP_verify_response(ts_verify_ctx,ts_resp);
+
+      std::cout<<nRet<<std::endl;
+    }else{
+      //SM2 encryption? 或者把P7的码改回去？
+
+
+    }
+    //const char *plainData = "test plain data";
+//        ts_verify_token(TS_MSG_IMPRINT_get_msg(TS_TST_INFO_get_msg_imprint(TS_RESP_get_tst_info(ts_resp)))->data,
+//                    TS_MSG_IMPRINT_get_msg(TS_TST_INFO_get_msg_imprint(TS_RESP_get_tst_info(ts_resp)))->length,
+//                    root_x509_[0],TS_RESP_get_token(ts_resp));
+
+
     if (tsa_cert.empty()) {
       // 1.获取默认的时间戳服务器证书公钥
 
@@ -373,6 +425,7 @@ public:
       // 1.获取该证书的公钥
       uint8_t hash_type = 0;
       uint8_t key_type = 0;
+      //2.如果cert不是pem的der格式。    STF_TS_INVALID_DATAFORMAT
       std::string pub_pem = get_publickey_pem_form_der_cert(
           &hash_type, &key_type, (void *)tsa_cert.data(), cert_length);
       if (hash_id != hash_type) {
@@ -601,27 +654,27 @@ private:
     return nullptr;
   }
 
-  uint8_t create_ts_req(uint8_t hash_type, bool hava_cert_req,
+  void create_ts_req(uint8_t hash_type, bool hava_cert_req,
                         unsigned char *byDigest, int nDigestLen,
                         unsigned char *tsreq, int *tsreqlen) {
-    int nRet = 0, RetVal = 0;
     TS_MSG_IMPRINT *msg_imprint = nullptr;
     X509_ALGOR *x509_algor = nullptr;
     ASN1_INTEGER *nonce_asn1 = nullptr;
     TS_REQ *ts_req = nullptr;
     ASN1_OBJECT *policy_obj1 = nullptr;
 
-    // ts req ********************************************************
     ts_req = TS_REQ_new();
     if (!ts_req) {
-      // RetVal = TS_MemErr;
-      goto end;
+      if (ts_req)
+        TS_REQ_free(ts_req);
+      throw common::Exception(STF_TS_SYSTEM_FAILURE);
     }
 
     // version
-    nRet = TS_REQ_set_version(ts_req, 1);
-    if (!nRet) {
-      goto end;
+    if (!TS_REQ_set_version(ts_req, 1)) {
+      if (ts_req)
+        TS_REQ_free(ts_req);
+      throw common::Exception(STF_TS_SYSTEM_FAILURE);
     }
 
     // messageImprint
@@ -634,7 +687,11 @@ private:
       x509_algor->algorithm = OBJ_nid2obj(NID_sha256);
     }
     if (!(x509_algor->algorithm)) {
-      goto end;
+      if (x509_algor)
+        X509_ALGOR_free(x509_algor);
+      if (ts_req)
+        TS_REQ_free(ts_req);
+      throw common::Exception(STF_TS_SYSTEM_FAILURE);
     }
 //    x509_algor->parameter = ASN1_TYPE_new();
 //    if (!(x509_algor->parameter)) {
@@ -644,42 +701,101 @@ private:
 
     msg_imprint = TS_MSG_IMPRINT_new();
     if (!msg_imprint) {
-      goto end;
-    }
-    nRet = TS_MSG_IMPRINT_set_algo(msg_imprint, x509_algor);
-    if (!nRet) {
-      goto end;
-    }
-    nRet = TS_MSG_IMPRINT_set_msg(msg_imprint, byDigest, nDigestLen);
-    if (!nRet) {
-      goto end;
+      if (msg_imprint)
+        TS_MSG_IMPRINT_free(msg_imprint);
+      if (x509_algor)
+        X509_ALGOR_free(x509_algor);
+      if (ts_req)
+        TS_REQ_free(ts_req);
+      throw common::Exception(STF_TS_SYSTEM_FAILURE);
     }
 
-    nRet = TS_REQ_set_msg_imprint(ts_req, msg_imprint);
-    if (!nRet) {
-      goto end;
+    if (!TS_MSG_IMPRINT_set_algo(msg_imprint, x509_algor)) {
+      if (msg_imprint)
+        TS_MSG_IMPRINT_free(msg_imprint);
+      if (x509_algor)
+        X509_ALGOR_free(x509_algor);
+      if (ts_req)
+        TS_REQ_free(ts_req);
+      throw common::Exception(STF_TS_SYSTEM_FAILURE);
     }
+
+    if (!TS_MSG_IMPRINT_set_msg(msg_imprint, byDigest, nDigestLen)) {
+      if (msg_imprint)
+        TS_MSG_IMPRINT_free(msg_imprint);
+      if (x509_algor)
+        X509_ALGOR_free(x509_algor);
+      if (ts_req)
+        TS_REQ_free(ts_req);
+      throw common::Exception(STF_TS_SYSTEM_FAILURE);
+    }
+
+    if (!TS_REQ_set_msg_imprint(ts_req, msg_imprint)) {
+      if (msg_imprint)
+        TS_MSG_IMPRINT_free(msg_imprint);
+      if (x509_algor)
+        X509_ALGOR_free(x509_algor);
+      if (ts_req)
+        TS_REQ_free(ts_req);
+      throw common::Exception(STF_TS_SYSTEM_FAILURE);
+    }
+
     // nonce
     nonce_asn1 = create_nonce(64);
     if (!nonce_asn1) {
-      goto end;
+      if (msg_imprint)
+        TS_MSG_IMPRINT_free(msg_imprint);
+      if (x509_algor)
+        X509_ALGOR_free(x509_algor);
+      if (nonce_asn1)
+        ASN1_INTEGER_free(nonce_asn1);
+      if (ts_req)
+        TS_REQ_free(ts_req);
+      throw common::Exception(STF_TS_SYSTEM_FAILURE);
     }
+
     policy_obj1 = OBJ_txt2obj("1.2.3.4.5.6.7.8", true);
     TS_REQ_set_policy_id(ts_req,policy_obj1);
 
-    nRet = TS_REQ_set_nonce(ts_req, nonce_asn1);
-    if (!nRet) {
-      goto end;
+    if (!TS_REQ_set_nonce(ts_req, nonce_asn1)) {
+      if (msg_imprint)
+        TS_MSG_IMPRINT_free(msg_imprint);
+      if (x509_algor)
+        X509_ALGOR_free(x509_algor);
+      if (nonce_asn1)
+        ASN1_INTEGER_free(nonce_asn1);
+      if (ts_req)
+        TS_REQ_free(ts_req);
+      throw common::Exception(STF_TS_SYSTEM_FAILURE);
     }
+
     // certReq
     if (hava_cert_req) {
-      nRet = TS_REQ_set_cert_req(ts_req, 1);
+      if (!TS_REQ_set_cert_req(ts_req, 1)) {
+        if (msg_imprint)
+          TS_MSG_IMPRINT_free(msg_imprint);
+        if (x509_algor)
+          X509_ALGOR_free(x509_algor);
+        if (nonce_asn1)
+          ASN1_INTEGER_free(nonce_asn1);
+        if (ts_req)
+          TS_REQ_free(ts_req);
+        throw common::Exception(STF_TS_SYSTEM_FAILURE);
+      }
     } else {
-      nRet = TS_REQ_set_cert_req(ts_req, 0);
+      if (!TS_REQ_set_cert_req(ts_req, 0)) {
+        if (msg_imprint)
+          TS_MSG_IMPRINT_free(msg_imprint);
+        if (x509_algor)
+          X509_ALGOR_free(x509_algor);
+        if (nonce_asn1)
+          ASN1_INTEGER_free(nonce_asn1);
+        if (ts_req)
+          TS_REQ_free(ts_req);
+        throw common::Exception(STF_TS_SYSTEM_FAILURE);
+      }
     }
-    if (!nRet) {
-      goto end;
-    }
+
     // output
     unsigned char byOut[10240];
     memset(byOut, 0, sizeof(byOut));
@@ -687,13 +803,22 @@ private:
     unsigned char *pbTmp;
     pbTmp = byOut;
     nOutLen = i2d_TS_REQ(ts_req, &pbTmp);
+
     if (nOutLen <= 0) {
-      goto end;
+      if (msg_imprint)
+        TS_MSG_IMPRINT_free(msg_imprint);
+      if (x509_algor)
+        X509_ALGOR_free(x509_algor);
+      if (nonce_asn1)
+        ASN1_INTEGER_free(nonce_asn1);
+      if (ts_req)
+        TS_REQ_free(ts_req);
+      throw common::Exception(STF_TS_SYSTEM_FAILURE);
     }
+
     memcpy(tsreq, byOut, nOutLen);
     *tsreqlen = nOutLen;
 
-  end:
     if (msg_imprint)
       TS_MSG_IMPRINT_free(msg_imprint);
     if (x509_algor)
@@ -703,7 +828,6 @@ private:
     if (ts_req)
       TS_REQ_free(ts_req);
 
-    return RetVal;
   }
 
   static ASN1_INTEGER *tsa_serial_cb(TS_RESP_CTX *ctx, UNUSED void *data) {
@@ -825,7 +949,7 @@ private:
 //    }
 
     // Setting the precision of the time.
-    nRet = TS_RESP_CTX_set_clock_precision_digits(ts_resp_ctx, 3);
+    nRet = TS_RESP_CTX_set_clock_precision_digits(ts_resp_ctx, 3);    //3-msec
 //    if (!nRet) {
 //      // RetVal = TS_PreciErr;
 //      goto end;
@@ -842,10 +966,12 @@ private:
     serialNumber = ASN1_INTEGER_get(TS_TST_INFO_get_serial(TS_RESP_get_tst_info(ts_resp)));
     req_bio = BIO_new(BIO_s_mem());
     {
-      ASN1_GENERALIZEDTIME_print(req_bio,TS_TST_INFO_get_time(TS_RESP_get_tst_info(ts_resp)));
-      char a[50];
-      BIO_read(req_bio,a,50);
+      BIO *time_bio = BIO_new(BIO_s_mem());
+      ASN1_GENERALIZEDTIME_print(time_bio,TS_TST_INFO_get_time(TS_RESP_get_tst_info(ts_resp)));
+      char a[50] = {0};
+      BIO_read(time_bio,a,50);
       *time_out = std::string(a);
+      BIO_free(time_bio);
     }
     if (!ts_resp)
       if (!nRet) {
@@ -880,41 +1006,38 @@ private:
     return serialNumber;
   }
 
-  int ts_verify_token( unsigned char *data, int datalen, X509* rootcacert, X509* cacert,
-                             unsigned char *tstoken, int tstokenlen)
+  int ts_verify_token(unsigned char *data, int datalen, UNUSED X509* rootcacert, PKCS7 *ts_token)
   {
-    //bool bRet = false;
     int nRet = 0, RetVal = 0;
 
-    PKCS7 *ts_token = NULL;
+    //PKCS7 *ts_token = NULL;
     TS_VERIFY_CTX *ts_verify_ctx = NULL;
 
     // verify ts token ********************************************************
     // ts token
-    unsigned char *pbTmp;
-    pbTmp = tstoken;
-    ts_token = d2i_PKCS7(NULL, (const unsigned char **)&pbTmp, tstokenlen);
-    if (!ts_token)
-    {
-      //RetVal = TS_RespErr;
-      //goto end;
-    }
+    //unsigned char *pbTmp;
+    //pbTmp = tstoken;
+    //ts_token = d2i_PKCS7(NULL, (const unsigned char **)&pbTmp, tstokenlen);
 
     // verify ctx
     ts_verify_ctx = TS_VERIFY_CTX_new();
     if (!ts_verify_ctx)
     {
+      std::cout<<"failed"<<std::endl;
+
       //RetVal = TS_MemErr;
      // goto end;
     }
 
     TS_VERIFY_CTX_set_flags(ts_verify_ctx, TS_VFY_VERSION | TS_VFY_DATA | TS_VFY_SIGNATURE | TS_VFY_SIGNER);
+
     // data
     BIO *data_bio = BIO_new(BIO_s_mem());
-   // BIO_set_close(data_bio, BIO_CLOSE); // BIO_free() free BUF_MEM
 
     if (BIO_write(data_bio, data, datalen) != datalen)
     {
+      std::cout<<"failed"<<std::endl;
+
       //RetVal = TS_RespErr;
      // goto end;
     }
@@ -929,25 +1052,20 @@ private:
       nRet = X509_STORE_add_cert(store, rootcacert);
       if (!nRet)
       {
+        std::cout<<"failed"<<std::endl;
+
        // RetVal = TS_RootCACertErr;
        // goto end;
       }
     }
 
-    if ( cacert )
-    {
-      nRet = X509_STORE_add_cert(store, cacert);
-      if (!nRet)
-      {
-      //  RetVal = TS_CACertErr;
-       // goto end;
-      }
-    }
     TS_VERIFY_CTX_set_store(ts_verify_ctx, store);
-    // verify
+
+  //   verify
     nRet = TS_RESP_verify_token(ts_verify_ctx, ts_token);
     if (!nRet)
     {
+      std::cout<<"failed"<<std::endl;
      // RetVal = TS_VerifyErr;
     //  goto end;
     }
@@ -989,6 +1107,31 @@ private:
      EVP_PKEY_set1_RSA(tsa_pri_key_, rsa_key);
   }
 
+  void judge_nid(uint64_t user_input,uint64_t cert_set){
+    //判断sign id是否与default的相同
+    switch (user_input) {
+    case SGD_SHA1_RSA:
+      if(cert_set != NID_sha1WithRSAEncryption){
+        throw common::Exception(STF_TS_INVALID_REQUEST);    //非法的申请
+      }
+      break;
+    case SGD_SHA256_RSA:
+      if(cert_set != NID_sha256WithRSAEncryption){
+        throw common::Exception(STF_TS_INVALID_REQUEST);    //非法的申请
+      }
+      break;
+    case SGD_SM3_SM2:
+      if(cert_set != NID_sm2sign_with_sm3){
+        if(cert_set != NID_sm2encrypt_with_sm3){
+          throw common::Exception(STF_TS_INVALID_REQUEST);    //非法的申请
+        }
+      }
+      break;
+    default:
+      throw common::Exception(STF_TS_INVALID_REQUEST);    //非法的申请
+    }
+  }
+
 private:
   std::unique_ptr<timetool::TimeAdaptor> time_adaptor_;
   struct timeval timecc {};
@@ -1000,7 +1143,7 @@ private:
   EVP_PKEY *tsa_pri_key_;
   std::string tsa_cert_pem_;
   std::vector<X509 *> root_x509_;
-
+  int tsa_signature_nid_;
   std::string tsa_name;
 };
 
