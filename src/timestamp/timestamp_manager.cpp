@@ -1,17 +1,17 @@
 #include "timestamp_manager.h"
 
-#include "openssl/pem.h"
-#include "openssl/rand.h"
-
+#include "timestampUtil.hpp"
+#include "time_adaptor.h"
+#include "ndsec_ts_error.h"
 #include "common/crypto_util.h"
 #include "common/exception.h"
 #include "common/robust_mutex.h"
 #include "data_manager.h"
-#include "ndsec_ts_error.h"
-#include "openssl/ts.h"
-#include "time_adaptor.h"
-#include "openssl/sm3.h"
 
+#include "openssl/pem.h"
+#include "openssl/rand.h"
+#include "openssl/ts.h"
+#include "openssl/sm3.h"
 #include <sys/time.h>
 
 #include <glog/logging.h>
@@ -20,257 +20,6 @@
 #define UNUSED __attribute__((unused))
 
 namespace ndsec::timetool {
-
-#define NONCE_LENGTH 64
-#define SERIAL_FILE "/home/sunshuo/Desktop/db/tsa_serial_file"
-
-const char kBase64Alphabet[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-                               "abcdefghijklmnopqrstuvwxyz"
-                               "0123456789+/";
-
-class Base64 {
-public:
-  static bool Encode(const std::string &in, std::string *out) {
-    int i = 0, j = 0;
-    size_t enc_len = 0;
-    unsigned char a3[3];
-    unsigned char a4[4];
-
-    out->resize(EncodedLength(in));
-
-    size_t input_len = in.size();
-    std::string::const_iterator input = in.begin();
-
-    while (input_len--) {
-      a3[i++] = *(input++);
-      if (i == 3) {
-        a3_to_a4(a4, a3);
-
-        for (i = 0; i < 4; i++) {
-          (*out)[enc_len++] = kBase64Alphabet[a4[i]];
-        }
-
-        i = 0;
-      }
-    }
-
-    if (i) {
-      for (j = i; j < 3; j++) {
-        a3[j] = '\0';
-      }
-
-      a3_to_a4(a4, a3);
-
-      for (j = 0; j < i + 1; j++) {
-        (*out)[enc_len++] = kBase64Alphabet[a4[j]];
-      }
-
-      while ((i++ < 3)) {
-        (*out)[enc_len++] = '=';
-      }
-    }
-
-    return (enc_len == out->size());
-  }
-
-  static bool Encode(const char *input, size_t input_length, char *out, size_t out_length) {
-    int i = 0, j = 0;
-    char *out_begin = out;
-    unsigned char a3[3];
-    unsigned char a4[4];
-
-    size_t encoded_length = EncodedLength(input_length);
-
-    if (out_length < encoded_length) return false;
-
-    while (input_length--) {
-      a3[i++] = *input++;
-      if (i == 3) {
-        a3_to_a4(a4, a3);
-
-        for (i = 0; i < 4; i++) {
-          *out++ = kBase64Alphabet[a4[i]];
-        }
-
-        i = 0;
-      }
-    }
-
-    if (i) {
-      for (j = i; j < 3; j++) {
-        a3[j] = '\0';
-      }
-
-      a3_to_a4(a4, a3);
-
-      for (j = 0; j < i + 1; j++) {
-        *out++ = kBase64Alphabet[a4[j]];
-      }
-
-      while ((i++ < 3)) {
-        *out++ = '=';
-      }
-    }
-
-    return (out == (out_begin + encoded_length));
-  }
-
-  static bool Decode(const std::string &in, std::string *out) {
-    int i = 0, j = 0;
-    size_t dec_len = 0;
-    unsigned char a3[3];
-    unsigned char a4[4];
-
-    size_t input_len = in.size();
-    std::string::const_iterator input = in.begin();
-
-    out->resize(DecodedLength(in));
-
-    while (input_len--) {
-      if (*input == '=') {
-        break;
-      }
-
-      a4[i++] = *(input++);
-      if (i == 4) {
-        for (i = 0; i <4; i++) {
-          a4[i] = b64_lookup(a4[i]);
-        }
-
-        a4_to_a3(a3,a4);
-
-        for (i = 0; i < 3; i++) {
-          (*out)[dec_len++] = a3[i];
-        }
-
-        i = 0;
-      }
-    }
-
-    if (i) {
-      for (j = i; j < 4; j++) {
-        a4[j] = '\0';
-      }
-
-      for (j = 0; j < 4; j++) {
-        a4[j] = b64_lookup(a4[j]);
-      }
-
-      a4_to_a3(a3,a4);
-
-      for (j = 0; j < i - 1; j++) {
-        (*out)[dec_len++] = a3[j];
-      }
-    }
-
-    return (dec_len == out->size());
-  }
-
-  static bool Decode(const char *input, size_t input_length, char *out, size_t out_length) {
-    int i = 0, j = 0;
-    char *out_begin = out;
-    unsigned char a3[3];
-    unsigned char a4[4];
-
-    size_t decoded_length = DecodedLength(input, input_length);
-
-    if (out_length < decoded_length) return false;
-
-    while (input_length--) {
-      if (*input == '=') {
-        break;
-      }
-
-      a4[i++] = *(input++);
-      if (i == 4) {
-        for (i = 0; i <4; i++) {
-          a4[i] = b64_lookup(a4[i]);
-        }
-
-        a4_to_a3(a3,a4);
-
-        for (i = 0; i < 3; i++) {
-          *out++ = a3[i];
-        }
-
-        i = 0;
-      }
-    }
-
-    if (i) {
-      for (j = i; j < 4; j++) {
-        a4[j] = '\0';
-      }
-
-      for (j = 0; j < 4; j++) {
-        a4[j] = b64_lookup(a4[j]);
-      }
-
-      a4_to_a3(a3,a4);
-
-      for (j = 0; j < i - 1; j++) {
-        *out++ = a3[j];
-      }
-    }
-
-    return (out == (out_begin + decoded_length));
-  }
-
-  static size_t DecodedLength(const char *in, size_t in_length) {
-    int numEq = 0;
-
-    const char *in_end = in + in_length;
-    while (*--in_end == '=') ++numEq;
-
-    return ((6 * in_length) / 8) - numEq;
-  }
-
-  static size_t DecodedLength(const std::string &in) {
-    int numEq = 0;
-    size_t n = in.size();
-
-    for (std::string::const_reverse_iterator it = in.rbegin(); *it == '='; ++it) {
-      ++numEq;
-    }
-
-    return ((6 * n) / 8) - numEq;
-  }
-
-  inline static size_t EncodedLength(size_t length) {
-    return (length + 2 - ((length + 2) % 3)) / 3 * 4;
-  }
-
-  inline static size_t EncodedLength(const std::string &in) {
-    return EncodedLength(in.length());
-  }
-
-  inline static void StripPadding(std::string *in) {
-    while (!in->empty() && *(in->rbegin()) == '=') in->resize(in->size() - 1);
-  }
-
-private:
-  static inline void a3_to_a4(unsigned char * a4, unsigned char * a3) {
-    a4[0] = (a3[0] & 0xfc) >> 2;
-    a4[1] = ((a3[0] & 0x03) << 4) + ((a3[1] & 0xf0) >> 4);
-    a4[2] = ((a3[1] & 0x0f) << 2) + ((a3[2] & 0xc0) >> 6);
-    a4[3] = (a3[2] & 0x3f);
-  }
-
-  static inline void a4_to_a3(unsigned char * a3, unsigned char * a4) {
-    a3[0] = (a4[0] << 2) + ((a4[1] & 0x30) >> 4);
-    a3[1] = ((a4[1] & 0xf) << 4) + ((a4[2] & 0x3c) >> 2);
-    a3[2] = ((a4[2] & 0x3) << 6) + a4[3];
-  }
-
-  static inline unsigned char b64_lookup(unsigned char c) {
-    if(c >='A' && c <='Z') return c - 'A';
-    if(c >='a' && c <='z') return c - 71;
-    if(c >='0' && c <='9') return c + 4;
-    if(c == '+') return 62;
-    if(c == '/') return 63;
-    return 255;
-  }
-};
 
 class TimeManagerImpl : public TimeManager {
 public:
@@ -337,6 +86,13 @@ public:
     if(ts_req == nullptr){
       throw common::Exception(STF_TS_INVALID_REQUEST);
     }
+    if(TS_REQ_get_cert_req(ts_req)){
+      //包含证书的请求
+
+    }else{
+
+
+    }
 
     std::string ts_time;
     unsigned char byOut1[10240];
@@ -350,91 +106,61 @@ public:
     //std::cout<<time<<std::endl;
     std::string res((char *)byOut1, tsrep_len);
     std::string base64_resp;
-    Base64::Encode(res,&base64_resp);
+    timestamp_util::Base64::Encode(res,&base64_resp);
     data_manager_->insert_log(id,"", tsa_cert_pem_, time, user_ip, base64_resp);
     return res;
   }
 
-  bool verify_ts_info(UNUSED const std::string &response,
-                      UNUSED uint64_t response_length, uint32_t hash_id,
-                      UNUSED uint32_t sign_id,
+  bool verify_ts_info(const std::string &response,
+                      uint64_t response_length, uint32_t hash_id,
+                      uint32_t sign_id,
                       UNUSED const std::string &tsa_cert,
                       UNUSED uint64_t cert_length) override {
+    bool result = false;
     TS_RESP *ts_resp = nullptr;
     ts_resp = TS_RESP_new();
     const unsigned char *t = reinterpret_cast<const unsigned char *>(response.data());
     d2i_TS_RESP(&ts_resp,&t,response_length);
     if(ts_resp == nullptr){
-      throw common::Exception(STF_TS_INVALID_DATAFORMAT);
+      throw common::Exception(STF_TS_INVALID_DATAFORMAT);    //错误的数据格式
     }
-
-    std::cout<<ASN1_STRING_get0_data(TS_TST_INFO_get_time(TS_RESP_get_tst_info(ts_resp)))<<std::endl;
-    std::cout<<ASN1_STRING_get0_data(TS_MSG_IMPRINT_get_msg(TS_TST_INFO_get_msg_imprint(TS_RESP_get_tst_info(ts_resp))))<<std::endl;
-    std::cout<<TS_MSG_IMPRINT_get_msg(TS_TST_INFO_get_msg_imprint(TS_RESP_get_tst_info(ts_resp)))<<std::endl;
-
-    PKCS7 *p7 = TS_RESP_get_token(ts_resp);
-    unsigned char byOut[10240];
-    unsigned char *pbTmp;
-    memset(byOut, 0, sizeof(byOut));
-    pbTmp = byOut;
-    UNUSED int nOutLen = i2d_PKCS7(p7, &pbTmp);
-    const char *plainData = "test plain data";
-    UNUSED unsigned int plainDataLen = (unsigned int)strlen(plainData);
-
-    int nid = OBJ_obj2nid(p7->type);
-//    ts_verify_token(byOut,
-//                    nOutLen,
-//                    root_x509_[0],TS_RESP_get_token(ts_resp));
-    if(nid == NID_pkcs7_signed){
-      std::cout<<nid<<std::endl;
-      std::cout<<OBJ_obj2nid(p7->d.sign->contents->type)<<std::endl;
-      TS_VERIFY_CTX *ts_verify_ctx = NULL;
-      ts_verify_ctx = TS_VERIFY_CTX_new();
-      BIO *data_bio = BIO_new(BIO_s_mem());
-      BIO_write(data_bio, ASN1_STRING_get0_data(TS_MSG_IMPRINT_get_msg(TS_TST_INFO_get_msg_imprint(TS_RESP_get_tst_info(ts_resp)))), TS_MSG_IMPRINT_get_msg(TS_TST_INFO_get_msg_imprint(TS_RESP_get_tst_info(ts_resp)))->length);
-      //TS_VERIFY_CTX_set_data(ts_verify_ctx, data_bio);
-      TS_VERIFY_CTX_set_imprint(ts_verify_ctx,TS_MSG_IMPRINT_get_msg(TS_TST_INFO_get_msg_imprint(TS_RESP_get_tst_info(ts_resp)))->data,TS_MSG_IMPRINT_get_msg(TS_TST_INFO_get_msg_imprint(TS_RESP_get_tst_info(ts_resp)))->length);
-
-      TS_VERIFY_CTX_set_flags(ts_verify_ctx, TS_VFY_VERSION | TS_VFY_IMPRINT );
-      int nRet =  TS_RESP_verify_response(ts_verify_ctx,ts_resp);
-
-      std::cout<<nRet<<std::endl;
-    }else{
-      //SM2 encryption? 或者把P7的码改回去？
-
-
-    }
-    //const char *plainData = "test plain data";
-//        ts_verify_token(TS_MSG_IMPRINT_get_msg(TS_TST_INFO_get_msg_imprint(TS_RESP_get_tst_info(ts_resp)))->data,
-//                    TS_MSG_IMPRINT_get_msg(TS_TST_INFO_get_msg_imprint(TS_RESP_get_tst_info(ts_resp)))->length,
-//                    root_x509_[0],TS_RESP_get_token(ts_resp));
-
-
-    if (tsa_cert.empty()) {
-      // 1.获取默认的时间戳服务器证书公钥
-
-      // 2.获取其中的时间信息
-
-      // 3.调用对应的hash算法
-
-      // 4.判断其中的签名值是否相等
-
-      // 5.返回
-
-    } else {
-      // 1.获取该证书的公钥
-      uint8_t hash_type = 0;
-      uint8_t key_type = 0;
-      //2.如果cert不是pem的der格式。    STF_TS_INVALID_DATAFORMAT
-      std::string pub_pem = get_publickey_pem_form_der_cert(
-          &hash_type, &key_type, (void *)tsa_cert.data(), cert_length);
-      if (hash_id != hash_type) {
-        return false;
+    //判断完基本参数是正常的情况
+    if (tsa_cert.empty()) {     //外部没有证书输入
+      //从时间戳请求中获得参数与证书信息
+      if((TS_RESP_get_token(ts_resp)->d.sign->cert) == nullptr){  //不包含证书的时间戳请求
+        throw common::Exception(STF_TS_INVALID_REQUEST);
       }
-      // 2.
-    }
+      X509 *resp_cert = sk_X509_pop((TS_RESP_get_token(ts_resp)->d.sign->cert));
+      if(resp_cert == nullptr){
+        TS_RESP_free(ts_resp);
+        throw common::Exception(STF_TS_INVALID_DATAFORMAT);      //错误的数据格式
+      }
+      uint32_t type = X509_get_signature_nid(resp_cert);
+      if(hash_id == SGD_SHA1 && sign_id == SGD_SHA1_RSA){
+        judge_nid(SGD_SHA1_RSA,type);
+      }else if(hash_id == SGD_SHA256 && sign_id == SGD_SHA256_RSA){
+        judge_nid(SGD_SHA256_RSA,type);
+      }else if(hash_id == SGD_SM3 && sign_id == SGD_SM3_SM2){
+        judge_nid(SGD_SM3_SM2,type);
+      } else{
+        throw common::Exception(STF_TS_INVALID_ALG);    //使用了不支持的算法
+      }
+      result = ts_verify_resp(ts_resp,tsa_x509_);
+    } else {    //外部输入了证书
+      //从外部输入中获得证书信息
+      BIO *cert_bio = BIO_new_mem_buf(tsa_cert.data(), cert_length);
+      X509 *cert = d2i_X509_bio(cert_bio, nullptr);
+      uint32_t type = X509_get_signature_type(cert);
 
-    return true;
+      //解析、判断外部传来的证书，判断格式是否为pem的der格式
+      result = ts_verify_resp(ts_resp,tsa_x509_);
+
+      //如果cert不是pem的der格式。    STF_TS_INVALID_DATAFORMAT
+//      std::string pub_pem = get_publickey_pem_form_der_cert(
+//          &hash_type, &key_type, (void *)tsa_cert.data(), cert_length);
+    }
+    std::cout<<result<<std::endl;
+    return result;
   }
 
   std::string get_tsa_name() override { return nullptr; }
@@ -450,133 +176,6 @@ private:
     gettimeofday(&timecc, nullptr);
     return time_adaptor_->utc_format(
         time_adaptor_->unix32_to_UTC_beijing(timecc.tv_sec, timecc.tv_usec));
-  }
-
-  static uint8_t get_serial(const char *serialfile, std::string &serialNumber) {
-    uint8_t nRet = -1;
-    BIO *in = nullptr;
-    ASN1_INTEGER *serial = nullptr;
-    BIGNUM *bn = nullptr;
-    char *Dec = nullptr;
-    char *Hex = nullptr;
-
-    if (!(serial = ASN1_INTEGER_new()))
-      goto err;
-
-    if (!(in = BIO_new_file(serialfile, "r"))) {
-      if (!ASN1_INTEGER_set(serial, 1))
-        goto err;
-    } else {
-      char buf[1024];
-      if (!a2i_ASN1_INTEGER(in, serial, buf, sizeof(buf)))
-        goto err;
-      if (!(bn = ASN1_INTEGER_to_BN(serial, nullptr)))
-        goto err;
-      Hex = BN_bn2hex(bn);
-      Dec = BN_bn2dec(bn);
-      serialNumber = Dec;
-      ASN1_INTEGER_free(serial);
-      serial = nullptr;
-    }
-
-    nRet = 0;
-  err:
-    if (nRet) {
-      ASN1_INTEGER_free(serial);
-      serial = nullptr;
-    }
-    BIO_free(in);
-    BN_free(bn);
-    OPENSSL_free(Dec);
-    OPENSSL_free(Hex);
-    return nRet;
-  }
-
-  static ASN1_INTEGER *next_serial(const char *serialfile) {
-    uint8_t nRet = 0;
-    BIO *in = nullptr;
-    ASN1_INTEGER *serial = nullptr;
-    BIGNUM *bn = nullptr;
-
-    if (!(serial = ASN1_INTEGER_new()))
-      goto err;
-    if (!(in = BIO_new_file(serialfile, "r"))) {
-      if (!ASN1_INTEGER_set(serial, 1))
-        goto err;
-    } else {
-      char buf[1024];
-      if (!a2i_ASN1_INTEGER(in, serial, buf, sizeof(buf)))
-        goto err;
-      if (!(bn = ASN1_INTEGER_to_BN(serial, nullptr)))
-        goto err;
-      ASN1_INTEGER_free(serial);
-      serial = nullptr;
-      if (!BN_add_word(bn, 1))
-        goto err;
-      if (!(serial = BN_to_ASN1_INTEGER(bn, nullptr)))
-        goto err;
-    }
-    nRet = 1;
-  err:
-    if (!nRet) {
-      ASN1_INTEGER_free(serial);
-      serial = nullptr;
-    }
-    BIO_free(in);
-    BN_free(bn);
-    return serial;
-  }
-
-  static uint8_t save_ts_serial(const char *serialfile, ASN1_INTEGER *serial) {
-    uint8_t nRet = 0;
-    BIO *out = nullptr;
-    if (!(out = BIO_new_file(serialfile, "w")))
-      goto err;
-    if (i2a_ASN1_INTEGER(out, serial) <= 0)
-      goto err;
-    if (BIO_puts(out, "\n") <= 0)
-      goto err;
-    nRet = 1;
-  err:
-    if (!nRet)
-      nRet = -1;
-    BIO_free(out);
-    return nRet;
-  }
-
-  /**
-   * @brief
-   * @param bits 传入NONCE_LENGTH
-   * @return
-   */
-  static ASN1_INTEGER *create_nonce(int bits) {
-    unsigned char buf[20];
-    ASN1_INTEGER *nonce = nullptr;
-    int len = (bits - 1) / 8 + 1;
-    int i;
-
-    /* Generating random byte sequence. */
-    if (len > (int)sizeof(buf))
-      goto err;
-    if (RAND_bytes(buf, len) <= 0)
-      goto err;
-
-    /* Find the first non-zero byte and creating ASN1_INTEGER object. */
-    for (i = 0; i < len && !buf[i]; ++i)
-      ;
-    if (!(nonce = ASN1_INTEGER_new()))
-      goto err;
-    OPENSSL_free(nonce->data);
-    /* Allocate at least one byte. */
-    nonce->length = len - i;
-    if (!(nonce->data = (unsigned char *)OPENSSL_malloc(nonce->length + 1)))
-      goto err;
-    memcpy(nonce->data, buf + i, nonce->length);
-
-    return nonce;
-  err:
-    ASN1_INTEGER_free(nonce);
-    return nullptr;
   }
 
   /**
@@ -741,7 +340,7 @@ private:
     }
 
     // nonce
-    nonce_asn1 = create_nonce(64);
+    nonce_asn1 = timestamp_util::create_nonce(64);
     if (!nonce_asn1) {
       if (msg_imprint)
         TS_MSG_IMPRINT_free(msg_imprint);
@@ -830,22 +429,11 @@ private:
 
   }
 
-  static ASN1_INTEGER *tsa_serial_cb(TS_RESP_CTX *ctx, UNUSED void *data) {
-      ASN1_INTEGER *serial = next_serial(SERIAL_FILE);
-      if (!serial) {
-        TS_RESP_CTX_set_status_info(ctx, TS_STATUS_REJECTION,
-                                    "Error during serial number "
-                                    "generation.");
-        TS_RESP_CTX_add_failure_info(ctx, TS_INFO_ADD_INFO_NOT_AVAILABLE);
-      } else {
-        save_ts_serial(SERIAL_FILE, serial);
-      }
-      return serial;
-  }
+
 
   long create_ts_resp(unsigned char *tsreq, int tsreqlen, X509 *root_cert,
                      unsigned char *tsresp,
-                     int *tsresplen,UNUSED std::string *time_out) {
+                     int *tsresplen, UNUSED std::string *time_out) {
 
     int nRet = 0;
     STACK_OF(X509) *x509_cacerts = nullptr;
@@ -895,7 +483,7 @@ private:
     //ASN1_GENERALIZEDTIME_set_string(asn1_time, get_time().c_str());
 
     // Setting serial number provider callback.
-    TS_RESP_CTX_set_serial_cb(ts_resp_ctx, tsa_serial_cb, nullptr);
+    TS_RESP_CTX_set_serial_cb(ts_resp_ctx, timestamp_util::tsa_serial_cb, nullptr);
 
     // Setting TSA signer certificate chain.
     if (x509_cacerts != nullptr) {
@@ -955,11 +543,12 @@ private:
 //      goto end;
 //    }
 
-    // Setting the ordering flaf if requested.
+    // Setting the ordering flag if requested.
     TS_RESP_CTX_add_flags(ts_resp_ctx, TS_ORDERING);
-
     // Setting the TSA name required flag if requested.
     TS_RESP_CTX_add_flags(ts_resp_ctx, TS_TSA_NAME);
+
+    TS_RESP_CTX_add_flags(ts_resp_ctx,TS_ESS_CERT_ID_CHAIN);
 
     // Creating the response.
     ts_resp = TS_RESP_create_response(ts_resp_ctx, req_bio);
@@ -1006,77 +595,53 @@ private:
     return serialNumber;
   }
 
-  int ts_verify_token(unsigned char *data, int datalen, UNUSED X509* rootcacert, PKCS7 *ts_token)
+  bool ts_verify_resp(TS_RESP *ts_resp,UNUSED X509* tsa_sign_cert)
   {
-    int nRet = 0, RetVal = 0;
+    TS_TST_INFO_get_tsa(TS_RESP_get_tst_info(ts_resp));
+    bool result = false;
+    PKCS7 *p7 = TS_RESP_get_token(ts_resp);
+    uint64_t nid = OBJ_obj2nid(p7->type);
+    GENERAL_NAME *name = TS_TST_INFO_get_tsa(TS_RESP_get_tst_info(ts_resp));
+    char source_szDNname[256] = {0};
+    timestamp_util::mycertname2string(name->d.directoryName, source_szDNname);
+    std::cout<<source_szDNname<<std::endl;
+    char input_szDNname[256] = {0};
+    timestamp_util::mycertname2string(X509_get_subject_name(tsa_sign_cert), input_szDNname);
+    std::cout<<input_szDNname<<std::endl;
+    if(strcmp(source_szDNname,input_szDNname) != 0){    //str1=str2: strcmp = 0
+      return false;
+    }
+    if(nid == NID_pkcs7_signed){
+      TS_VERIFY_CTX *ts_verify_ctx = nullptr;
+      ts_verify_ctx = TS_VERIFY_CTX_new();
+      TS_VERIFY_CTX_init(ts_verify_ctx);
+      TS_VERIFY_CTX_set_imprint(ts_verify_ctx,TS_MSG_IMPRINT_get_msg(TS_TST_INFO_get_msg_imprint(TS_RESP_get_tst_info(ts_resp)))->data,TS_MSG_IMPRINT_get_msg(TS_TST_INFO_get_msg_imprint(TS_RESP_get_tst_info(ts_resp)))->length);
 
-    //PKCS7 *ts_token = NULL;
-    TS_VERIFY_CTX *ts_verify_ctx = NULL;
+//      auto store = X509_STORE_new();
+//      //X509_STORE_add_cert(store, root_x509_[0]);
+//      X509_STORE_add_cert(store, tsa_sign_cert);
 
-    // verify ts token ********************************************************
-    // ts token
-    //unsigned char *pbTmp;
-    //pbTmp = tstoken;
-    //ts_token = d2i_PKCS7(NULL, (const unsigned char **)&pbTmp, tstokenlen);
+//      TS_VERIFY_CTX_set_store(ts_verify_ctx, store);
+//      STACK_OF(X509) *cert = sk_X509_new_null();
+//      sk_X509_push(cert, tsa_sign_cert);
+//      TS_VERIFY_CTS_set_certs(ts_verify_ctx,cert);
+//      BIO *data = BIO_new(BIO_s_mem());
+//      const char * dd = "test plain data";
+//      BIO_write(data,dd, strlen(dd));
+//      TS_VERIFY_CTX_set_data(ts_verify_ctx,data);
 
-    // verify ctx
-    ts_verify_ctx = TS_VERIFY_CTX_new();
-    if (!ts_verify_ctx)
-    {
-      std::cout<<"failed"<<std::endl;
+      TS_VERIFY_CTX_set_flags(ts_verify_ctx, TS_VFY_VERSION | TS_VFY_IMPRINT ); // | TS_VFY_SIGNATURE | TS_VFY_SIGNER
+      //TS_VERIFY_CTX_set_flags(ts_verify_ctx, TS_VFY_TSA_NAME);
+      result = TS_RESP_verify_response(ts_verify_ctx,ts_resp);
+    }else{
+      //SM2 encryption
 
-      //RetVal = TS_MemErr;
-     // goto end;
     }
 
-    TS_VERIFY_CTX_set_flags(ts_verify_ctx, TS_VFY_VERSION | TS_VFY_DATA | TS_VFY_SIGNATURE | TS_VFY_SIGNER);
+    if(p7 != nullptr)
+      PKCS7_free(p7);
 
-    // data
-    BIO *data_bio = BIO_new(BIO_s_mem());
-
-    if (BIO_write(data_bio, data, datalen) != datalen)
-    {
-      std::cout<<"failed"<<std::endl;
-
-      //RetVal = TS_RespErr;
-     // goto end;
-    }
-
-    TS_VERIFY_CTX_set_data(ts_verify_ctx, data_bio);
-
-    // x509 store
-    auto store = X509_STORE_new();
-
-    if( rootcacert )
-    {
-      nRet = X509_STORE_add_cert(store, rootcacert);
-      if (!nRet)
-      {
-        std::cout<<"failed"<<std::endl;
-
-       // RetVal = TS_RootCACertErr;
-       // goto end;
-      }
-    }
-
-    TS_VERIFY_CTX_set_store(ts_verify_ctx, store);
-
-  //   verify
-    nRet = TS_RESP_verify_token(ts_verify_ctx, ts_token);
-    if (!nRet)
-    {
-      std::cout<<"failed"<<std::endl;
-     // RetVal = TS_VerifyErr;
-    //  goto end;
-    }
-
-//  end:
-//    if (ts_token)
-//      PKCS7_free(ts_token);
-//    if (ts_verify_ctx)
-//      TS_VERIFY_CTX_free(ts_verify_ctx);
-//
-   return RetVal;
+   return result;
   }
 
   void set_tsa_default_info() {
@@ -1107,7 +672,7 @@ private:
      EVP_PKEY_set1_RSA(tsa_pri_key_, rsa_key);
   }
 
-  void judge_nid(uint64_t user_input,uint64_t cert_set){
+  static void judge_nid(uint64_t user_input,uint64_t cert_set){
     //判断sign id是否与default的相同
     switch (user_input) {
     case SGD_SHA1_RSA:

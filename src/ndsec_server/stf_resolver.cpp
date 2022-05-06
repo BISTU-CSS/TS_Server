@@ -4,6 +4,7 @@
 #include "ndsec_ts_error.h"
 #include "session_manager.h"
 #include "timestamp_manager.h"
+#include "common/exception.h"
 
 #include "openssl/ts.h"
 
@@ -138,14 +139,16 @@ void CreateTSRequestCall::Proceed() {
       if (request_.uireqtype() != 0 || request_.uireqtype() != 1) {
         reply_.set_code(timestamp::GRPC_STF_TS_INVALID_REQUEST); //非法的申请
       }
-      //std::cout << request_.pucindata() << std::endl;
-      std::string request = time_manager->build_ts_request(
-          request_.uireqtype(), request_.uihashalgid(), request_.pucindata(),
-          request_.uiindatalength());
-     // std::cout << request << std::endl;
-      reply_.set_puctsrequest(request);
-      reply_.set_puctsrequestlength(request.length());
-      reply_.set_code(timestamp::GRPC_STF_TS_OK);
+      try {
+        std::string request = time_manager->build_ts_request(
+            request_.uireqtype(), request_.uihashalgid(), request_.pucindata(),
+            request_.uiindatalength());
+        reply_.set_puctsrequest(request);
+        reply_.set_puctsrequestlength(request.length());
+        reply_.set_code(timestamp::GRPC_STF_TS_OK);
+      }catch (ndsec::common::Exception &e) {
+        reply_.set_code(timestamp::ResponseStatus(e.get_error_code()));
+      }
     } else {
       reply_.set_code(timestamp::GRPC_STF_TS_INVALID_REQUEST); //非法的申请
     }
@@ -166,16 +169,17 @@ void CreateTSResponseCall::Proceed() {
     new CreateTSResponseCall(service_, cq_);
     uint64_t session_handle = request_.handle().session_id();
     if (session_pool->is_session_exist(session_handle)) {
-      // session存在 , 获取包内变量设置
-      // TODO: try and catch
-      std::string request = request_.puctsresquest();
-      std::string package = time_manager->build_ts_response(
-          ctx_.peer(), request_.uisignaturealgid(), request_.puctsresquest(),
-          request_.uitsrequestlength()); //结构体转换为string
-     // std::cout<<"RESPONSE:"<<package<<std::endl;
-      reply_.set_puitsresponse(package);
-      reply_.set_puitsresponselength(package.length());
-      reply_.set_code(timestamp::GRPC_STF_TS_OK);
+      try {
+        std::string request = request_.puctsresquest();
+        std::string package = time_manager->build_ts_response(
+            ctx_.peer(), request_.uisignaturealgid(), request_.puctsresquest(),
+            request_.uitsrequestlength()); //结构体转换为string
+        reply_.set_puitsresponse(package);
+        reply_.set_puitsresponselength(package.length());
+        reply_.set_code(timestamp::GRPC_STF_TS_OK);
+      }catch (ndsec::common::Exception &e) {
+        reply_.set_code(timestamp::ResponseStatus(e.get_error_code()));
+      }
     } else {
       reply_.set_code(timestamp::GRPC_STF_TS_INVALID_REQUEST); //非法的申请
     }
@@ -197,15 +201,20 @@ void VerifyTSValidityCall::Proceed() {
     uint64_t session_handle = request_.handle().session_id();
     if (session_pool->is_session_exist(session_handle)) {
       // session存在
-      bool result = time_manager->verify_ts_info(
-          request_.puctsresponse(), request_.uitsresponselength(),
-          request_.uihashalgid(), request_.uisignaturealgid(),
-          request_.puctscert(), request_.uitscertlength());
-      if (result) {
-        reply_.set_code(timestamp::GRPC_STF_TS_OK);
-      } else {
-        reply_.set_code(timestamp::GRPC_STF_TS_INVALID_SIGNATURE);
+      try {
+        bool result= time_manager->verify_ts_info(
+            request_.puctsresponse(), request_.uitsresponselength(),
+            request_.uihashalgid(), request_.uisignaturealgid(),
+            request_.puctscert(), request_.uitscertlength());
+        if (result) {
+          reply_.set_code(timestamp::GRPC_STF_TS_OK);
+        } else {
+          reply_.set_code(timestamp::GRPC_STF_TS_INVALID_SIGNATURE);      //签名无效
+        }
+      }catch (ndsec::common::Exception &e){
+        reply_.set_code(timestamp::ResponseStatus(e.get_error_code()));
       }
+
     } else {
       reply_.set_code(timestamp::GRPC_STF_TS_INVALID_REQUEST); //非法的申请
     }
@@ -228,6 +237,12 @@ void GetTSInfoCall::Proceed() {
     if (session_pool->is_session_exist(session_handle)) {
       // session存在
       // 证书的通用名称 数据库里取得
+      try{
+
+      }catch (ndsec::common::Exception &e){
+        reply_.set_code(timestamp::ResponseStatus(e.get_error_code()));
+      }
+
       std::string TSA_ISSUENAME = "NDSEC_TSA";
       // time_manager->
       reply_.set_pucissuername(TSA_ISSUENAME);
@@ -256,15 +271,19 @@ void GetTSDetailCall::Proceed() {
     uint64_t session_handle = request_.handle().session_id();
     if (session_pool->is_session_exist(session_handle)) {
       // session存在
-      request_.puctsresponse();
-      request_.uitsresponselength();
-      request_.uiitemnumber();
 
-      request_.puiitemvaluelength();
+      try{
+        request_.puctsresponse();
+        request_.uitsresponselength();
+        request_.uiitemnumber();
+        request_.puiitemvaluelength();
 
-      // reply_.set_puiitemvalue();
-      // reply_.set_puiitemvaluelength();
-      reply_.set_code(timestamp::GRPC_STF_TS_OK);
+//        reply_.set_puiitemvalue();
+//        reply_.set_puiitemvaluelength();
+        reply_.set_code(timestamp::GRPC_STF_TS_OK);
+      }catch (ndsec::common::Exception &e){
+        reply_.set_code(timestamp::ResponseStatus(e.get_error_code()));
+      }
     } else {
       reply_.set_code(timestamp::GRPC_STF_TS_INVALID_REQUEST); //非法的申请
     }
