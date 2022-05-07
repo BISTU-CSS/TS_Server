@@ -615,16 +615,14 @@ public:
     return true;
   }
 
-  int GetPrecision(TS_TST_INFO *ts_tst_info, char *pucItemValue,
-                   int *puiItemValueLength) {
+  static std::string get_precision(TS_TST_INFO *ts_tst_info) {
     TS_ACCURACY *ac = TS_TST_INFO_get_accuracy(ts_tst_info);
-    if (ac == NULL) {
-      return STF_TS_MALFORMAT;
+    if (ac == nullptr) {
+      throw common::Exception(STF_TS_MALFORMAT);
     }
-
     ASN1_INTEGER *ans1_sec =
         const_cast<ASN1_INTEGER *>(TS_ACCURACY_get_seconds(ac));
-    BIGNUM *bn_sec = ASN1_INTEGER_to_BN(ans1_sec, NULL);
+    BIGNUM *bn_sec = ASN1_INTEGER_to_BN(ans1_sec, nullptr);
     char *secBuf = BN_bn2dec(bn_sec);
 
     ASN1_INTEGER *ans1_millis =
@@ -634,15 +632,13 @@ public:
 
     ASN1_INTEGER *ans1_micros =
         const_cast<ASN1_INTEGER *>(TS_ACCURACY_get_micros(ac));
-    BIGNUM *bn_micros = ASN1_INTEGER_to_BN(ans1_micros, NULL);
+    BIGNUM *bn_micros = ASN1_INTEGER_to_BN(ans1_micros, nullptr);
     char *secMicros = BN_bn2dec(bn_micros);
 
     char temp[64] = {0};
     sprintf(temp, "secs:%s, millisecs:%s, microsecs:%s.", secBuf, secMillis,
             secMicros);
-    strcpy(pucItemValue, temp);
-    *puiItemValueLength = strlen(pucItemValue);
-    return STF_TS_OK;
+    return std::string(temp);
   }
 
   //      std::string pub_pem = get_publickey_pem_form_der_cert(

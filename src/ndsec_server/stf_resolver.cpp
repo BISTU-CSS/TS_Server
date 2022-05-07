@@ -210,7 +210,7 @@ void VerifyTSValidityCall::Proceed() {
         if (result) {
           reply_.set_code(timestamp::GRPC_STF_TS_OK);
         } else {
-          reply_.set_code(timestamp::GRPC_STF_TS_INVALID_SIGNATURE); //签名无效
+          reply_.set_code(timestamp::GRPC_STF_TS_INVALID_SIGNATURE); //签名无效 STF_TS_INVALID_SIGNATURE
         }
       } catch (ndsec::common::Exception &e) {
         reply_.set_code(timestamp::ResponseStatus(e.get_error_code()));

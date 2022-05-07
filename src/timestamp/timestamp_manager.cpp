@@ -104,7 +104,7 @@ public:
     bool result = false;
     TS_RESP *ts_resp = nullptr;
     ts_resp = TS_RESP_new();
-    const unsigned char *t =
+    const auto *t =
         reinterpret_cast<const unsigned char *>(response.data());
     d2i_TS_RESP(&ts_resp, &t, response_length);
     if (ts_resp == nullptr) {
@@ -153,12 +153,19 @@ public:
       //解析、判断外部传来的证书，判断格式是否为pem的der格式
       result = ts_verify_resp(ts_resp, cert);
     }
-    std::cout << result << std::endl;
     return result;
   }
 
   std::string get_tsa_info(const std::string &response,
                            uint64_t response_length, uint32_t code) override {
+    //固定
+    if(code == STF_SOURCE_OF_TIME){   //时间源的来源
+      return "LOCAL";
+    } else if(code == STF_RESPONSE_TYPE){ //响应方式
+      return "HTTP";
+    }
+    // 非固定
+    char source_szDNname[256] = {0};
     TS_RESP *ts_resp = nullptr;
     ts_resp = TS_RESP_new();
     const auto *t = reinterpret_cast<const unsigned char *>(response.data());
@@ -167,20 +174,15 @@ public:
       throw common::Exception(STF_TS_INVALID_DATAFORMAT); //错误的数据格式
     }
     std::string result;
+    bool have_cert = true;
     switch (code) {
+    //----------信息提取------------
     case STF_ORIGINAL_DATA: { //时间戳请求的原始信息
 
     } break;
-      //固定
-    case STF_SOURCE_OF_TIME: //时间源的来源
-      result = "LOCAL";
-      break;
-    case STF_RESPONSE_TYPE: //响应方式
-      result = "http";
-      break;
-      //时间提取
+    //----------时间提取------------
     case STF_TIME_PRECISION: { //时间精度
-
+      timestamp_util::get_precision(TS_RESP_get_tst_info(ts_resp));
     } break;
     case STF_TIME_OF_STAMP: { //签发时间
       BIO *time_bio = BIO_new(BIO_s_mem());
@@ -191,7 +193,33 @@ public:
       result = std::string(time_buffer);
       BIO_free(time_bio);
     } break;
-    //证书提取
+    //----------证书提取------------
+    //先判断是否是存在证书的情况
+    have_cert = false;
+
+    case STF_CERT_OF_TSSERVER: { //时间戳服务器的证书
+      if(have_cert){
+        //返回证书
+      }else{
+        //返回证书编号
+      }
+    } break;
+    case STF_CERTCHAIN_OF_TSSERVER: { //时间戳服务器的证书链
+      if(have_cert){
+        //返回证书
+      }else{
+        //返回证书编号
+      }
+    } break;
+
+      if(have_cert){
+        //存在证书，提取
+        GENERAL_NAME *name = TS_TST_INFO_get_tsa(TS_RESP_get_tst_info(ts_resp));
+        timestamp_util::mycertname2string(name->d.directoryName, source_szDNname);
+      }else{
+        throw common::Exception(STF_TS_MALFORMAT);    //时间戳格式错误 -- 不包含证书，无法提取
+      }
+    //均为存在证书的情况
     case STF_CN_OF_TSSIGNER: { //签发者的通用名
 
     } break;
@@ -205,12 +233,6 @@ public:
 
     } break;
     case STF_SUBJECT_EMAIL_OF_TSSIGNER: { //签发者联系用电子信箱
-
-    } break;
-    case STF_CERT_OF_TSSERVER: { //时间戳服务器的证书
-
-    } break;
-    case STF_CERTCHAIN_OF_TSSERVER: { //时间戳服务器的证书链
 
     } break;
     }
