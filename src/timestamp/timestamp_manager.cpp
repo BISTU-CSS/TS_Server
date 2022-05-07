@@ -36,14 +36,14 @@ public:
 
   std::string build_ts_request(uint32_t req_type, uint32_t hash_id,
                                const std::string &data,
-                               UNUSED uint64_t data_length) override {
+                               uint64_t data_length) override {
     //判断hashid是否与default的相同
     unsigned char req_buffer[1000];
     int req_buffer_length = 0;
 
     if (hash_id == SGD_SM3) {
       unsigned char hash_buffer[SM3_DIGEST_LENGTH];
-      sm3(reinterpret_cast<const unsigned char *>(data.c_str()),data.size(),hash_buffer);
+      sm3(reinterpret_cast<const unsigned char *>(data.c_str()),data_length,hash_buffer);
       create_ts_req(hash_id, !req_type,
                     hash_buffer,
                     SM3_DIGEST_LENGTH, req_buffer, &req_buffer_length);
@@ -51,7 +51,7 @@ public:
       unsigned char hash_buffer[SHA_DIGEST_LENGTH];
       SHA_CTX sha1;
       SHA1_Init(&sha1);
-      SHA1_Update(&sha1, data.c_str(), data.size());
+      SHA1_Update(&sha1, data.c_str(), data_length);
       SHA1_Final(hash_buffer, &sha1);
       create_ts_req(hash_id, !req_type,
                     hash_buffer,
@@ -60,7 +60,7 @@ public:
       unsigned char hash_buffer[SHA256_DIGEST_LENGTH];
       SHA256_CTX sha256;
       SHA256_Init(&sha256);
-      SHA256_Update(&sha256, data.c_str(), data.size());
+      SHA256_Update(&sha256, data.c_str(), data_length);
       SHA256_Final(hash_buffer, &sha256);
       create_ts_req(hash_id, !req_type,
                     hash_buffer,
@@ -72,38 +72,26 @@ public:
     return res;
   }
 
-  std::string build_ts_response(UNUSED const std::string &user_ip,
+  std::string build_ts_response(const std::string &user_ip,
                                 uint32_t sign_id,
-                                UNUSED const std::string &request,
-                                UNUSED uint64_t request_length) override {
+                                const std::string &request,
+                                uint64_t request_length) override {
     //判断sign id是否与default的相同
     judge_nid(sign_id,tsa_signature_nid_);
-
     //判断ts request的正确性
     TS_REQ *ts_req;
-    const unsigned char *t = reinterpret_cast<const unsigned char *>(request.data());
+    const auto *t = reinterpret_cast<const unsigned char *>(request.data());
     d2i_TS_REQ(&ts_req, &t,request_length);
     if(ts_req == nullptr){
       throw common::Exception(STF_TS_INVALID_REQUEST);
     }
-    if(TS_REQ_get_cert_req(ts_req)){
-      //包含证书的请求
-
-    }else{
-
-
-    }
-
     std::string ts_time;
     unsigned char byOut1[10240];
     std::string time;
     int tsrep_len = 0;
-
     int id = create_ts_resp((unsigned char *)request.data(), (int)request_length,
-                            root_x509_[0], byOut1, &tsrep_len,
-                            &time);
-
-    //std::cout<<time<<std::endl;
+                              root_x509_[0], byOut1, &tsrep_len,
+                              &time);
     std::string res((char *)byOut1, tsrep_len);
     std::string base64_resp;
     timestamp_util::Base64::Encode(res,&base64_resp);
@@ -114,8 +102,8 @@ public:
   bool verify_ts_info(const std::string &response,
                       uint64_t response_length, uint32_t hash_id,
                       uint32_t sign_id,
-                      UNUSED const std::string &tsa_cert,
-                      UNUSED uint64_t cert_length) override {
+                      const std::string &tsa_cert,
+                      uint64_t cert_length) override {
     bool result = false;
     TS_RESP *ts_resp = nullptr;
     ts_resp = TS_RESP_new();
@@ -150,20 +138,98 @@ public:
       //从外部输入中获得证书信息
       BIO *cert_bio = BIO_new_mem_buf(tsa_cert.data(), cert_length);
       X509 *cert = d2i_X509_bio(cert_bio, nullptr);
+      if(cert == nullptr){
+        throw common::Exception(STF_TS_INVALID_DATAFORMAT);    //使用了不支持的算法
+      }
       uint32_t type = X509_get_signature_type(cert);
-
+      if(hash_id == SGD_SHA1 && sign_id == SGD_SHA1_RSA){
+        judge_nid(SGD_SHA1_RSA,type);
+      }else if(hash_id == SGD_SHA256 && sign_id == SGD_SHA256_RSA){
+        judge_nid(SGD_SHA256_RSA,type);
+      }else if(hash_id == SGD_SM3 && sign_id == SGD_SM3_SM2){
+        judge_nid(SGD_SM3_SM2,type);
+      } else{
+        throw common::Exception(STF_TS_INVALID_ALG);    //使用了不支持的算法
+      }
       //解析、判断外部传来的证书，判断格式是否为pem的der格式
-      result = ts_verify_resp(ts_resp,tsa_x509_);
+      result = ts_verify_resp(ts_resp,cert);
 
-      //如果cert不是pem的der格式。    STF_TS_INVALID_DATAFORMAT
-//      std::string pub_pem = get_publickey_pem_form_der_cert(
-//          &hash_type, &key_type, (void *)tsa_cert.data(), cert_length);
     }
     std::cout<<result<<std::endl;
     return result;
   }
 
-  std::string get_tsa_name() override { return nullptr; }
+  std::string get_tsa_info(const std::string &response,uint64_t response_length,uint32_t code) override {
+    TS_RESP *ts_resp = nullptr;
+    ts_resp = TS_RESP_new();
+    const auto *t = reinterpret_cast<const unsigned char *>(response.data());
+    d2i_TS_RESP(&ts_resp,&t,response_length);
+    if(ts_resp == nullptr){
+      throw common::Exception(STF_TS_INVALID_DATAFORMAT);    //错误的数据格式
+    }
+    std::string result;
+    switch (code) {
+      case STF_ORIGINAL_DATA:{     //时间戳请求的原始信息
+
+
+      }
+        break;
+        //固定
+      case STF_SOURCE_OF_TIME:        //时间源的来源
+        result = "LOCAL";
+        break;
+      case STF_RESPONSE_TYPE:       //响应方式
+        result = "http";
+        break;
+        //时间提取
+      case STF_TIME_PRECISION:{        //时间精度
+
+
+      }break;
+      case STF_TIME_OF_STAMP:{     //签发时间
+        BIO *time_bio = BIO_new(BIO_s_mem());
+        ASN1_GENERALIZEDTIME_print(time_bio,TS_TST_INFO_get_time(TS_RESP_get_tst_info(ts_resp)));
+        char time_buffer[50] = {0};
+        BIO_read(time_bio,time_buffer,50);
+        result = std::string(time_buffer);
+        BIO_free(time_bio);
+      }break;
+      //证书提取
+      case STF_CN_OF_TSSIGNER:{    //签发者的通用名
+
+
+      }
+      break;
+      case STF_SUBJECT_COUNTRY_OF_TSSIGNER:{   //签发者国家
+
+      }
+        break;
+      case STF_SUBJECT_ORGNIZATION_OF_TSSIGNER:{   //签发者组织
+
+      }
+        break;
+      case STF_SUBJECT_CITY_OF_TSSIGNER:{      //签发者城市
+
+      }
+        break;
+      case STF_SUBJECT_EMAIL_OF_TSSIGNER:{     //签发者联系用电子信箱
+
+
+      }
+        break;
+      case STF_CERT_OF_TSSERVER:{ //时间戳服务器的证书
+
+      }
+      break;
+      case STF_CERTCHAIN_OF_TSSERVER:{ //时间戳服务器的证书链
+
+      }
+      break;
+      }
+
+    return result;
+  }
+
 
 private:
   std::string get_time_from_unix_utc() {
@@ -178,81 +244,6 @@ private:
         time_adaptor_->unix32_to_UTC_beijing(timecc.tv_sec, timecc.tv_usec));
   }
 
-  /**
-   * 将DER格式证书文件提取出其中算法信息与公钥结构
-   * @param hash_type[in,out] hash算法标识 SGD_SM3/SGD_SHA1/SGD_SHA256
-   * @param keyType[in,out] 钥匙类型 SM2/RSA1024/RSA2048，通过宏定义
-   * @param der_cert[in] 证书信息读取出来的buffer
-   * @param der_cert_length[in] 证书buffer大小
-   * @return
-   */
-  std::string get_publickey_pem_form_der_cert(UNUSED uint8_t *hash_type,
-                                              UNUSED uint8_t *key_type,
-                                              void *der_cert,
-                                              uint32_t der_cert_length) {
-    BIO *cert_bio = BIO_new_mem_buf(der_cert, der_cert_length);
-    X509 *cert = d2i_X509_bio(cert_bio, nullptr);
-    uint32_t type = X509_get_signature_type(cert);
-    if (type == NID_sm2sign_with_sm3) {
-      key_type = reinterpret_cast<uint8_t *>(SM2);
-      hash_type = reinterpret_cast<uint8_t *>(SGD_SM3);
-      EVP_PKEY *pkey = X509_get_pubkey(cert);
-      EC_KEY *ec_key = EVP_PKEY_get1_EC_KEY(pkey);
-      BIO *pub = BIO_new(BIO_s_mem());
-      PEM_write_bio_EC_PUBKEY(pub, ec_key);
-      int pub_len = BIO_pending(pub);
-      char *pub_key = new char[pub_len];
-      BIO_read(pub, pub_key, pub_len);
-      std::string result(pub_key, pub_len);
-      delete[] pub_key;
-
-      return result;
-    } else if (type == NID_sha1WithRSAEncryption || type == NID_sha1WithRSA) {
-      hash_type = reinterpret_cast<uint8_t *>(SGD_SHA1);
-
-      EVP_PKEY *pkey = X509_get_pubkey(cert);
-      RSA *rsa_key = EVP_PKEY_get1_RSA(pkey);
-      if (RSA_size(rsa_key) == 256) {
-        key_type = reinterpret_cast<uint8_t *>(RSA2048);
-      } else {
-        //暂不支持
-      }
-
-      BIO *pub = BIO_new(BIO_s_mem());
-      PEM_write_bio_RSA_PUBKEY(pub, rsa_key);
-      int pub_len = BIO_pending(pub);
-      char *pub_key = new char[pub_len];
-      BIO_read(pub, pub_key, pub_len);
-      std::string result(pub_key, pub_len);
-      delete[] pub_key;
-
-      return result;
-    } else if (type == NID_sha256WithRSAEncryption) {
-      hash_type = reinterpret_cast<uint8_t *>(SGD_SHA256);
-
-      EVP_PKEY *pkey = X509_get_pubkey(cert);
-      RSA *rsa_key = EVP_PKEY_get1_RSA(pkey);
-
-      if (RSA_size(rsa_key) == 256) {
-        key_type = reinterpret_cast<uint8_t *>(RSA2048);
-      } else {
-        //暂不支持
-      }
-
-      BIO *pub = BIO_new(BIO_s_mem());
-      PEM_write_bio_RSA_PUBKEY(pub, rsa_key);
-      int pub_len = BIO_pending(pub);
-      char *pub_key = new char[pub_len];
-      BIO_read(pub, pub_key, pub_len);
-      std::string result(pub_key, pub_len);
-      delete[] pub_key;
-
-      return result;
-    }
-
-    return nullptr;
-  }
-
   void create_ts_req(uint8_t hash_type, bool hava_cert_req,
                         unsigned char *byDigest, int nDigestLen,
                         unsigned char *tsreq, int *tsreqlen) {
@@ -264,15 +255,12 @@ private:
 
     ts_req = TS_REQ_new();
     if (!ts_req) {
-      if (ts_req)
-        TS_REQ_free(ts_req);
       throw common::Exception(STF_TS_SYSTEM_FAILURE);
     }
 
     // version
     if (!TS_REQ_set_version(ts_req, 1)) {
-      if (ts_req)
-        TS_REQ_free(ts_req);
+      TS_REQ_free(ts_req);
       throw common::Exception(STF_TS_SYSTEM_FAILURE);
     }
 
@@ -285,11 +273,10 @@ private:
     } else if (hash_type == SGD_SHA256) {
       x509_algor->algorithm = OBJ_nid2obj(NID_sha256);
     }
+
     if (!(x509_algor->algorithm)) {
-      if (x509_algor)
-        X509_ALGOR_free(x509_algor);
-      if (ts_req)
-        TS_REQ_free(ts_req);
+      X509_ALGOR_free(x509_algor);
+      TS_REQ_free(ts_req);
       throw common::Exception(STF_TS_SYSTEM_FAILURE);
     }
 //    x509_algor->parameter = ASN1_TYPE_new();
@@ -300,41 +287,29 @@ private:
 
     msg_imprint = TS_MSG_IMPRINT_new();
     if (!msg_imprint) {
-      if (msg_imprint)
         TS_MSG_IMPRINT_free(msg_imprint);
-      if (x509_algor)
         X509_ALGOR_free(x509_algor);
-      if (ts_req)
         TS_REQ_free(ts_req);
       throw common::Exception(STF_TS_SYSTEM_FAILURE);
     }
 
     if (!TS_MSG_IMPRINT_set_algo(msg_imprint, x509_algor)) {
-      if (msg_imprint)
         TS_MSG_IMPRINT_free(msg_imprint);
-      if (x509_algor)
         X509_ALGOR_free(x509_algor);
-      if (ts_req)
         TS_REQ_free(ts_req);
       throw common::Exception(STF_TS_SYSTEM_FAILURE);
     }
 
     if (!TS_MSG_IMPRINT_set_msg(msg_imprint, byDigest, nDigestLen)) {
-      if (msg_imprint)
         TS_MSG_IMPRINT_free(msg_imprint);
-      if (x509_algor)
         X509_ALGOR_free(x509_algor);
-      if (ts_req)
         TS_REQ_free(ts_req);
       throw common::Exception(STF_TS_SYSTEM_FAILURE);
     }
 
     if (!TS_REQ_set_msg_imprint(ts_req, msg_imprint)) {
-      if (msg_imprint)
         TS_MSG_IMPRINT_free(msg_imprint);
-      if (x509_algor)
         X509_ALGOR_free(x509_algor);
-      if (ts_req)
         TS_REQ_free(ts_req);
       throw common::Exception(STF_TS_SYSTEM_FAILURE);
     }
@@ -342,13 +317,9 @@ private:
     // nonce
     nonce_asn1 = timestamp_util::create_nonce(64);
     if (!nonce_asn1) {
-      if (msg_imprint)
         TS_MSG_IMPRINT_free(msg_imprint);
-      if (x509_algor)
         X509_ALGOR_free(x509_algor);
-      if (nonce_asn1)
         ASN1_INTEGER_free(nonce_asn1);
-      if (ts_req)
         TS_REQ_free(ts_req);
       throw common::Exception(STF_TS_SYSTEM_FAILURE);
     }
@@ -357,13 +328,9 @@ private:
     TS_REQ_set_policy_id(ts_req,policy_obj1);
 
     if (!TS_REQ_set_nonce(ts_req, nonce_asn1)) {
-      if (msg_imprint)
         TS_MSG_IMPRINT_free(msg_imprint);
-      if (x509_algor)
         X509_ALGOR_free(x509_algor);
-      if (nonce_asn1)
         ASN1_INTEGER_free(nonce_asn1);
-      if (ts_req)
         TS_REQ_free(ts_req);
       throw common::Exception(STF_TS_SYSTEM_FAILURE);
     }
@@ -371,25 +338,17 @@ private:
     // certReq
     if (hava_cert_req) {
       if (!TS_REQ_set_cert_req(ts_req, 1)) {
-        if (msg_imprint)
           TS_MSG_IMPRINT_free(msg_imprint);
-        if (x509_algor)
           X509_ALGOR_free(x509_algor);
-        if (nonce_asn1)
           ASN1_INTEGER_free(nonce_asn1);
-        if (ts_req)
           TS_REQ_free(ts_req);
         throw common::Exception(STF_TS_SYSTEM_FAILURE);
       }
     } else {
       if (!TS_REQ_set_cert_req(ts_req, 0)) {
-        if (msg_imprint)
           TS_MSG_IMPRINT_free(msg_imprint);
-        if (x509_algor)
           X509_ALGOR_free(x509_algor);
-        if (nonce_asn1)
           ASN1_INTEGER_free(nonce_asn1);
-        if (ts_req)
           TS_REQ_free(ts_req);
         throw common::Exception(STF_TS_SYSTEM_FAILURE);
       }
@@ -429,11 +388,9 @@ private:
 
   }
 
-
-
   long create_ts_resp(unsigned char *tsreq, int tsreqlen, X509 *root_cert,
                      unsigned char *tsresp,
-                     int *tsresplen, UNUSED std::string *time_out) {
+                     int *tsresplen, std::string *time_out) {
 
     int nRet = 0;
     STACK_OF(X509) *x509_cacerts = nullptr;
@@ -600,14 +557,15 @@ private:
     TS_TST_INFO_get_tsa(TS_RESP_get_tst_info(ts_resp));
     bool result = false;
     PKCS7 *p7 = TS_RESP_get_token(ts_resp);
+    if(p7 != nullptr){
+
+    }
     uint64_t nid = OBJ_obj2nid(p7->type);
     GENERAL_NAME *name = TS_TST_INFO_get_tsa(TS_RESP_get_tst_info(ts_resp));
     char source_szDNname[256] = {0};
     timestamp_util::mycertname2string(name->d.directoryName, source_szDNname);
-    std::cout<<source_szDNname<<std::endl;
     char input_szDNname[256] = {0};
     timestamp_util::mycertname2string(X509_get_subject_name(tsa_sign_cert), input_szDNname);
-    std::cout<<input_szDNname<<std::endl;
     if(strcmp(source_szDNname,input_szDNname) != 0){    //str1=str2: strcmp = 0
       return false;
     }
@@ -662,7 +620,7 @@ private:
      BIO *bio = BIO_new_mem_buf(tsa_cert_pem.c_str(), tsa_cert_pem.length());
      tsa_x509_ = PEM_read_bio_X509(bio, NULL, NULL, NULL);
 
-    //    // 从数据库中读取基本信息，用于放到变量中
+    //从数据库中读取基本信息，用于放到变量中
      common::Keypair keypair = data_manager_->get_default_cert_key_pem(&tsa_key_type_);
      BIO *pri_key_bio = BIO_new_mem_buf(
          reinterpret_cast<const unsigned char *>(keypair.private_key.c_str()), -1);
@@ -672,7 +630,7 @@ private:
      EVP_PKEY_set1_RSA(tsa_pri_key_, rsa_key);
   }
 
-  static void judge_nid(uint64_t user_input,uint64_t cert_set){
+  static void judge_nid(uint64_t user_input, uint64_t cert_set){
     //判断sign id是否与default的相同
     switch (user_input) {
     case SGD_SHA1_RSA:
@@ -703,9 +661,9 @@ private:
   std::unique_ptr<ndsec::data::DataManager> data_manager_;
   common::robust_mutex mutex_;
   // 时间戳服务器基本信息，初始化时读入
-  X509 *tsa_x509_;
-  uint8_t tsa_key_type_;
-  EVP_PKEY *tsa_pri_key_;
+  X509 *tsa_x509_{};
+  uint8_t tsa_key_type_{};
+  EVP_PKEY *tsa_pri_key_{};
   std::string tsa_cert_pem_;
   std::vector<X509 *> root_x509_;
   int tsa_signature_nid_;

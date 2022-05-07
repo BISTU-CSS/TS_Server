@@ -7,6 +7,7 @@
 #include "common/exception.h"
 
 #include "openssl/ts.h"
+#include "timestamp/timestampUtil.hpp"
 
 std::unique_ptr<ndsec::stf::session::SessionManager> session_pool;
 std::unique_ptr<ndsec::timetool::TimeManager> time_manager;
@@ -214,7 +215,6 @@ void VerifyTSValidityCall::Proceed() {
       }catch (ndsec::common::Exception &e){
         reply_.set_code(timestamp::ResponseStatus(e.get_error_code()));
       }
-
     } else {
       reply_.set_code(timestamp::GRPC_STF_TS_INVALID_REQUEST); //非法的申请
     }
@@ -229,27 +229,22 @@ void VerifyTSValidityCall::Proceed() {
 void GetTSInfoCall::Proceed() {
   if (status_ == CREATE) {
     status_ = PROCESS;
-
     service_->RequestGetTSInfo(&ctx_, &request_, &responder_, cq_, cq_, this);
   } else if (status_ == PROCESS) {
     new GetTSInfoCall(service_, cq_);
     uint64_t session_handle = request_.handle().session_id();
     if (session_pool->is_session_exist(session_handle)) {
       // session存在
-      // 证书的通用名称 数据库里取得
       try{
-
+        std::string name = time_manager->get_tsa_info(request_.puctsresponse(),request_.uitsresponselength(),STF_CN_OF_TSSIGNER);
+        std::string time = time_manager->get_tsa_info(request_.puctsresponse(),request_.uitsresponselength(),STF_TIME_OF_STAMP);
+        reply_.set_pucissuername(name);
+        reply_.set_puiissuernamelength(name.length());
+        reply_.set_puctime(time);
+        reply_.set_puitimelength(time.length());
       }catch (ndsec::common::Exception &e){
         reply_.set_code(timestamp::ResponseStatus(e.get_error_code()));
       }
-
-      std::string TSA_ISSUENAME = "NDSEC_TSA";
-      // time_manager->
-      reply_.set_pucissuername(TSA_ISSUENAME);
-
-      // reply_.set_allocated_puctime();
-      // reply_.set_puitimelength();
-
       reply_.set_code(timestamp::GRPC_STF_TS_OK);
     } else {
       reply_.set_code(timestamp::GRPC_STF_TS_INVALID_REQUEST); //非法的申请
@@ -271,15 +266,10 @@ void GetTSDetailCall::Proceed() {
     uint64_t session_handle = request_.handle().session_id();
     if (session_pool->is_session_exist(session_handle)) {
       // session存在
-
       try{
-        request_.puctsresponse();
-        request_.uitsresponselength();
-        request_.uiitemnumber();
-        request_.puiitemvaluelength();
-
-//        reply_.set_puiitemvalue();
-//        reply_.set_puiitemvaluelength();
+        std::string item = time_manager->get_tsa_info(request_.puctsresponse(),request_.uitsresponselength(),request_.uiitemnumber());
+        reply_.set_puiitemvalue(item);
+        reply_.set_puiitemvaluelength(item.length());
         reply_.set_code(timestamp::GRPC_STF_TS_OK);
       }catch (ndsec::common::Exception &e){
         reply_.set_code(timestamp::ResponseStatus(e.get_error_code()));

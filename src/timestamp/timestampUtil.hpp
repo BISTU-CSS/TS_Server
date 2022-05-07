@@ -4,6 +4,7 @@
 #include "openssl/ts.h"
 #include "openssl/rand.h"
 #include "ndsec_ts_error.h"
+#include "openssl/pem.h"
 
 #define UNUSED __attribute__((unused))
 const char kBase64Alphabet[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -12,6 +13,20 @@ const char kBase64Alphabet[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 #define NONCE_LENGTH 64
 #define SERIAL_FILE "/home/sunshuo/Desktop/db/tsa_serial_file"
 #define SGD_STR_SEPARATOR				"\r\n"
+namespace ndsec::timetool{
+
+#define STF_TIME_OF_STAMP 0x00000001         //签发时间
+#define STF_CN_OF_TSSIGNER 0x00000002        //签发者的通用名
+#define STF_ORIGINAL_DATA 0x00000003         //时间戳请求的原始信息
+#define STF_CERT_OF_TSSERVER 0x00000004      //时间戳服务器的证书
+#define STF_CERTCHAIN_OF_TSSERVER 0x00000005 //时间戳服务器的证书链
+#define STF_SOURCE_OF_TIME 0x00000006        //时间源的来源
+#define STF_TIME_PRECISION 0x00000007        //时间精度
+#define STF_RESPONSE_TYPE 0x00000008         //响应方式
+#define STF_SUBJECT_COUNTRY_OF_TSSIGNER 0x00000009     //签发者国家
+#define STF_SUBJECT_ORGNIZATION_OF_TSSIGNER 0x0000000A //签发者组织
+#define STF_SUBJECT_CITY_OF_TSSIGNER 0x0000000B        //签发者城市
+#define STF_SUBJECT_EMAIL_OF_TSSIGNER 0x0000000C //签发者联系用电子信箱
 
 class timestamp_util{
 public:
@@ -259,86 +274,86 @@ public:
     }
   };
 
-    static uint8_t get_serial(const char *serialfile, std::string &serialNumber) {
-      uint8_t nRet = -1;
-      BIO *in = nullptr;
-      ASN1_INTEGER *serial = nullptr;
-      BIGNUM *bn = nullptr;
-      char *Dec = nullptr;
-      char *Hex = nullptr;
+  static uint8_t get_serial(const char *serialfile, std::string &serialNumber) {
+    uint8_t nRet = -1;
+    BIO *in = nullptr;
+    ASN1_INTEGER *serial = nullptr;
+    BIGNUM *bn = nullptr;
+    char *Dec = nullptr;
+    char *Hex = nullptr;
 
-      if (!(serial = ASN1_INTEGER_new()))
+    if (!(serial = ASN1_INTEGER_new()))
+      goto err;
+
+    if (!(in = BIO_new_file(serialfile, "r"))) {
+      if (!ASN1_INTEGER_set(serial, 1))
         goto err;
-
-      if (!(in = BIO_new_file(serialfile, "r"))) {
-        if (!ASN1_INTEGER_set(serial, 1))
-          goto err;
-      } else {
-        char buf[1024];
-        if (!a2i_ASN1_INTEGER(in, serial, buf, sizeof(buf)))
-          goto err;
-        if (!(bn = ASN1_INTEGER_to_BN(serial, nullptr)))
-          goto err;
-        Hex = BN_bn2hex(bn);
-        Dec = BN_bn2dec(bn);
-        serialNumber = Dec;
-        ASN1_INTEGER_free(serial);
-        serial = nullptr;
-      }
-
-      nRet = 0;
-    err:
-      if (nRet) {
-        ASN1_INTEGER_free(serial);
-        serial = nullptr;
-      }
-      BIO_free(in);
-      BN_free(bn);
-      OPENSSL_free(Dec);
-      OPENSSL_free(Hex);
-      return nRet;
+    } else {
+      char buf[1024];
+      if (!a2i_ASN1_INTEGER(in, serial, buf, sizeof(buf)))
+        goto err;
+      if (!(bn = ASN1_INTEGER_to_BN(serial, nullptr)))
+        goto err;
+      Hex = BN_bn2hex(bn);
+      Dec = BN_bn2dec(bn);
+      serialNumber = Dec;
+      ASN1_INTEGER_free(serial);
+      serial = nullptr;
     }
 
-    static ASN1_INTEGER *next_serial(const char *serialfile) {
-      uint8_t nRet = 0;
-      BIO *in = nullptr;
-      ASN1_INTEGER *serial = nullptr;
-      BIGNUM *bn = nullptr;
-
-      if (!(serial = ASN1_INTEGER_new()))
-        goto err;
-      if (!(in = BIO_new_file(serialfile, "r"))) {
-        if (!ASN1_INTEGER_set(serial, 1))
-          goto err;
-      } else {
-        char buf[1024];
-        if (!a2i_ASN1_INTEGER(in, serial, buf, sizeof(buf)))
-          goto err;
-        if (!(bn = ASN1_INTEGER_to_BN(serial, nullptr)))
-          goto err;
-        ASN1_INTEGER_free(serial);
-        serial = nullptr;
-        if (!BN_add_word(bn, 1))
-          goto err;
-        if (!(serial = BN_to_ASN1_INTEGER(bn, nullptr)))
-          goto err;
-      }
-      nRet = 1;
-    err:
-      if (!nRet) {
-        ASN1_INTEGER_free(serial);
-        serial = nullptr;
-      }
-      BIO_free(in);
-      BN_free(bn);
-      return serial;
+    nRet = 0;
+  err:
+    if (nRet) {
+      ASN1_INTEGER_free(serial);
+      serial = nullptr;
     }
+    BIO_free(in);
+    BN_free(bn);
+    OPENSSL_free(Dec);
+    OPENSSL_free(Hex);
+    return nRet;
+  }
 
-    /**
+  static ASN1_INTEGER *next_serial(const char *serialfile) {
+    uint8_t nRet = 0;
+    BIO *in = nullptr;
+    ASN1_INTEGER *serial = nullptr;
+    BIGNUM *bn = nullptr;
+
+    if (!(serial = ASN1_INTEGER_new()))
+      goto err;
+    if (!(in = BIO_new_file(serialfile, "r"))) {
+      if (!ASN1_INTEGER_set(serial, 1))
+        goto err;
+    } else {
+      char buf[1024];
+      if (!a2i_ASN1_INTEGER(in, serial, buf, sizeof(buf)))
+        goto err;
+      if (!(bn = ASN1_INTEGER_to_BN(serial, nullptr)))
+        goto err;
+      ASN1_INTEGER_free(serial);
+      serial = nullptr;
+      if (!BN_add_word(bn, 1))
+        goto err;
+      if (!(serial = BN_to_ASN1_INTEGER(bn, nullptr)))
+        goto err;
+    }
+    nRet = 1;
+  err:
+    if (!nRet) {
+      ASN1_INTEGER_free(serial);
+      serial = nullptr;
+    }
+    BIO_free(in);
+    BN_free(bn);
+    return serial;
+  }
+
+  /**
      * @brief
      * @param bits 传入NONCE_LENGTH
      * @return
-     */
+   */
   static ASN1_INTEGER *create_nonce(int bits) {
     unsigned char buf[20];
     ASN1_INTEGER *nonce = nullptr;
@@ -493,10 +508,10 @@ public:
       return false;
 
     // 兼容linux
-//    	USES_CONVERSION;
-//    	setlocale(LC_CTYPE, "");
-//    	char asndata2[1024];
-//    	wchar_t wdata[1024];
+    //    	USES_CONVERSION;
+    //    	setlocale(LC_CTYPE, "");
+    //    	char asndata2[1024];
+    //    	wchar_t wdata[1024];
     int n;
 
     int fn_nid, asnlen, asntype;
@@ -626,4 +641,82 @@ public:
     return STF_TS_OK;
   }
 
+  //      std::string pub_pem = get_publickey_pem_form_der_cert(
+  //          &hash_type, &key_type, (void *)tsa_cert.data(), cert_length);
+  /**
+   * 将DER格式证书文件提取出其中算法信息与公钥结构
+   * @param hash_type[in,out] hash算法标识 SGD_SM3/SGD_SHA1/SGD_SHA256
+   * @param keyType[in,out] 钥匙类型 SM2/RSA1024/RSA2048，通过宏定义
+   * @param der_cert[in] 证书信息读取出来的buffer
+   * @param der_cert_length[in] 证书buffer大小
+   * @return
+   */
+  std::string get_publickey_pem_form_der_cert(UNUSED uint8_t *hash_type,
+                                              UNUSED uint8_t *key_type,
+                                              void *der_cert,
+                                              uint32_t der_cert_length) {
+    BIO *cert_bio = BIO_new_mem_buf(der_cert, der_cert_length);
+    X509 *cert = d2i_X509_bio(cert_bio, nullptr);
+    uint32_t type = X509_get_signature_type(cert);
+    if (type == NID_sm2sign_with_sm3) {
+      key_type = reinterpret_cast<uint8_t *>(SM2);
+      hash_type = reinterpret_cast<uint8_t *>(SGD_SM3);
+      EVP_PKEY *pkey = X509_get_pubkey(cert);
+      EC_KEY *ec_key = EVP_PKEY_get1_EC_KEY(pkey);
+      BIO *pub = BIO_new(BIO_s_mem());
+      PEM_write_bio_EC_PUBKEY(pub, ec_key);
+      int pub_len = BIO_pending(pub);
+      char *pub_key = new char[pub_len];
+      BIO_read(pub, pub_key, pub_len);
+      std::string result(pub_key, pub_len);
+      delete[] pub_key;
+
+      return result;
+    } else if (type == NID_sha1WithRSAEncryption || type == NID_sha1WithRSA) {
+      hash_type = reinterpret_cast<uint8_t *>(SGD_SHA1);
+
+      EVP_PKEY *pkey = X509_get_pubkey(cert);
+      RSA *rsa_key = EVP_PKEY_get1_RSA(pkey);
+      if (RSA_size(rsa_key) == 256) {
+        key_type = reinterpret_cast<uint8_t *>(RSA2048);
+      } else {
+        //暂不支持
+      }
+
+      BIO *pub = BIO_new(BIO_s_mem());
+      PEM_write_bio_RSA_PUBKEY(pub, rsa_key);
+      int pub_len = BIO_pending(pub);
+      char *pub_key = new char[pub_len];
+      BIO_read(pub, pub_key, pub_len);
+      std::string result(pub_key, pub_len);
+      delete[] pub_key;
+
+      return result;
+    } else if (type == NID_sha256WithRSAEncryption) {
+      hash_type = reinterpret_cast<uint8_t *>(SGD_SHA256);
+
+      EVP_PKEY *pkey = X509_get_pubkey(cert);
+      RSA *rsa_key = EVP_PKEY_get1_RSA(pkey);
+
+      if (RSA_size(rsa_key) == 256) {
+        key_type = reinterpret_cast<uint8_t *>(RSA2048);
+      } else {
+        //暂不支持
+      }
+
+      BIO *pub = BIO_new(BIO_s_mem());
+      PEM_write_bio_RSA_PUBKEY(pub, rsa_key);
+      int pub_len = BIO_pending(pub);
+      char *pub_key = new char[pub_len];
+      BIO_read(pub, pub_key, pub_len);
+      std::string result(pub_key, pub_len);
+      delete[] pub_key;
+
+      return result;
+    }
+
+    return nullptr;
+  }
 };
+
+}
