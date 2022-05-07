@@ -1,10 +1,10 @@
+#include "ndsec_ts_error.h"
+#include "openssl/pem.h"
+#include "openssl/rand.h"
+#include "openssl/ts.h"
 #include <cstring>
 #include <iconv.h>
 #include <vector>
-#include "openssl/ts.h"
-#include "openssl/rand.h"
-#include "ndsec_ts_error.h"
-#include "openssl/pem.h"
 
 #define UNUSED __attribute__((unused))
 const char kBase64Alphabet[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -12,8 +12,8 @@ const char kBase64Alphabet[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
                                "0123456789+/";
 #define NONCE_LENGTH 64
 #define SERIAL_FILE "/home/sunshuo/Desktop/db/tsa_serial_file"
-#define SGD_STR_SEPARATOR				"\r\n"
-namespace ndsec::timetool{
+#define SGD_STR_SEPARATOR "\r\n"
+namespace ndsec::timetool {
 
 #define STF_TIME_OF_STAMP 0x00000001         //签发时间
 #define STF_CN_OF_TSSIGNER 0x00000002        //签发者的通用名
@@ -28,7 +28,7 @@ namespace ndsec::timetool{
 #define STF_SUBJECT_CITY_OF_TSSIGNER 0x0000000B        //签发者城市
 #define STF_SUBJECT_EMAIL_OF_TSSIGNER 0x0000000C //签发者联系用电子信箱
 
-class timestamp_util{
+class timestamp_util {
 public:
   class Base64 {
   public:
@@ -75,7 +75,8 @@ public:
       return (enc_len == out->size());
     }
 
-    static bool Encode(const char *input, size_t input_length, char *out, size_t out_length) {
+    static bool Encode(const char *input, size_t input_length, char *out,
+                       size_t out_length) {
       int i = 0, j = 0;
       char *out_begin = out;
       unsigned char a3[3];
@@ -83,7 +84,8 @@ public:
 
       size_t encoded_length = EncodedLength(input_length);
 
-      if (out_length < encoded_length) return false;
+      if (out_length < encoded_length)
+        return false;
 
       while (input_length--) {
         a3[i++] = *input++;
@@ -135,11 +137,11 @@ public:
 
         a4[i++] = *(input++);
         if (i == 4) {
-          for (i = 0; i <4; i++) {
+          for (i = 0; i < 4; i++) {
             a4[i] = b64_lookup(a4[i]);
           }
 
-          a4_to_a3(a3,a4);
+          a4_to_a3(a3, a4);
 
           for (i = 0; i < 3; i++) {
             (*out)[dec_len++] = a3[i];
@@ -158,7 +160,7 @@ public:
           a4[j] = b64_lookup(a4[j]);
         }
 
-        a4_to_a3(a3,a4);
+        a4_to_a3(a3, a4);
 
         for (j = 0; j < i - 1; j++) {
           (*out)[dec_len++] = a3[j];
@@ -168,7 +170,8 @@ public:
       return (dec_len == out->size());
     }
 
-    static bool Decode(const char *input, size_t input_length, char *out, size_t out_length) {
+    static bool Decode(const char *input, size_t input_length, char *out,
+                       size_t out_length) {
       int i = 0, j = 0;
       char *out_begin = out;
       unsigned char a3[3];
@@ -176,7 +179,8 @@ public:
 
       size_t decoded_length = DecodedLength(input, input_length);
 
-      if (out_length < decoded_length) return false;
+      if (out_length < decoded_length)
+        return false;
 
       while (input_length--) {
         if (*input == '=') {
@@ -185,11 +189,11 @@ public:
 
         a4[i++] = *(input++);
         if (i == 4) {
-          for (i = 0; i <4; i++) {
+          for (i = 0; i < 4; i++) {
             a4[i] = b64_lookup(a4[i]);
           }
 
-          a4_to_a3(a3,a4);
+          a4_to_a3(a3, a4);
 
           for (i = 0; i < 3; i++) {
             *out++ = a3[i];
@@ -208,7 +212,7 @@ public:
           a4[j] = b64_lookup(a4[j]);
         }
 
-        a4_to_a3(a3,a4);
+        a4_to_a3(a3, a4);
 
         for (j = 0; j < i - 1; j++) {
           *out++ = a3[j];
@@ -222,7 +226,8 @@ public:
       int numEq = 0;
 
       const char *in_end = in + in_length;
-      while (*--in_end == '=') ++numEq;
+      while (*--in_end == '=')
+        ++numEq;
 
       return ((6 * in_length) / 8) - numEq;
     }
@@ -231,7 +236,8 @@ public:
       int numEq = 0;
       size_t n = in.size();
 
-      for (std::string::const_reverse_iterator it = in.rbegin(); *it == '='; ++it) {
+      for (std::string::const_reverse_iterator it = in.rbegin(); *it == '=';
+           ++it) {
         ++numEq;
       }
 
@@ -247,29 +253,35 @@ public:
     }
 
     inline static void StripPadding(std::string *in) {
-      while (!in->empty() && *(in->rbegin()) == '=') in->resize(in->size() - 1);
+      while (!in->empty() && *(in->rbegin()) == '=')
+        in->resize(in->size() - 1);
     }
 
   private:
-    static inline void a3_to_a4(unsigned char * a4, unsigned char * a3) {
+    static inline void a3_to_a4(unsigned char *a4, unsigned char *a3) {
       a4[0] = (a3[0] & 0xfc) >> 2;
       a4[1] = ((a3[0] & 0x03) << 4) + ((a3[1] & 0xf0) >> 4);
       a4[2] = ((a3[1] & 0x0f) << 2) + ((a3[2] & 0xc0) >> 6);
       a4[3] = (a3[2] & 0x3f);
     }
 
-    static inline void a4_to_a3(unsigned char * a3, unsigned char * a4) {
+    static inline void a4_to_a3(unsigned char *a3, unsigned char *a4) {
       a3[0] = (a4[0] << 2) + ((a4[1] & 0x30) >> 4);
       a3[1] = ((a4[1] & 0xf) << 4) + ((a4[2] & 0x3c) >> 2);
       a3[2] = ((a4[2] & 0x3) << 6) + a4[3];
     }
 
     static inline unsigned char b64_lookup(unsigned char c) {
-      if(c >='A' && c <='Z') return c - 'A';
-      if(c >='a' && c <='z') return c - 71;
-      if(c >='0' && c <='9') return c + 4;
-      if(c == '+') return 62;
-      if(c == '/') return 63;
+      if (c >= 'A' && c <= 'Z')
+        return c - 'A';
+      if (c >= 'a' && c <= 'z')
+        return c - 71;
+      if (c >= '0' && c <= '9')
+        return c + 4;
+      if (c == '+')
+        return 62;
+      if (c == '/')
+        return 63;
       return 255;
     }
   };
@@ -350,9 +362,9 @@ public:
   }
 
   /**
-     * @brief
-     * @param bits 传入NONCE_LENGTH
-     * @return
+   * @brief
+   * @param bits 传入NONCE_LENGTH
+   * @return
    */
   static ASN1_INTEGER *create_nonce(int bits) {
     unsigned char buf[20];
@@ -414,17 +426,15 @@ public:
     return serial;
   }
 
-  static int mybmpstr2str(const char *pcBMP, unsigned int unBMPSize, char *pcStr, bool bBigEndian = true)
-  {
+  static int mybmpstr2str(const char *pcBMP, unsigned int unBMPSize,
+                          char *pcStr, bool bBigEndian = true) {
     std::vector<char> rBMP(pcBMP, pcBMP + unBMPSize);
 
-    //android(2012-08-06)
+    // android(2012-08-06)
     //#if !defined(KT_BIG_ENDIAN) //&& defined(_WIN32)
-    if (bBigEndian)
-    {
+    if (bBigEndian) {
       int nHalfSize = unBMPSize / 2;
-      for (int i = 0; i < nHalfSize; i++)
-      {
+      for (int i = 0; i < nHalfSize; i++) {
         rBMP[2 * i + 1] = *pcBMP++;
         rBMP[2 * i] = *pcBMP++;
       }
@@ -432,8 +442,8 @@ public:
     //#endif
 
 #ifdef _WIN32
-    int n = WideCharToMultiByte(CP_ACP, 0,
-                                (LPCWSTR)&rBMP[0], unBMPSize / 2, pcStr, unBMPSize, NULL, NULL);
+    int n = WideCharToMultiByte(CP_ACP, 0, (LPCWSTR)&rBMP[0], unBMPSize / 2,
+                                pcStr, unBMPSize, NULL, NULL);
 #else
     std::vector<char> rTmp(unBMPSize + 2);
     rTmp[0] = 0xFF;
@@ -463,15 +473,14 @@ public:
     return n;
   }
 
-
-  static int myutf8str2str(const char *pcUTF8, unsigned int unUTF8Size, char *pcStr)
-  {
+  static int myutf8str2str(const char *pcUTF8, unsigned int unUTF8Size,
+                           char *pcStr) {
 #ifdef _WIN32
     CharArray rTmp(unUTF8Size * 2);
-    int n = MultiByteToWideChar(CP_UTF8, 0,
-                                pcUTF8, unUTF8Size, (LPWSTR)&rTmp[0], rTmp.size()/2);
-    n = WideCharToMultiByte(CP_ACP, 0,
-                            (LPCWSTR)&rTmp[0], n, pcStr, unUTF8Size, NULL, NULL);
+    int n = MultiByteToWideChar(CP_UTF8, 0, pcUTF8, unUTF8Size,
+                                (LPWSTR)&rTmp[0], rTmp.size() / 2);
+    n = WideCharToMultiByte(CP_ACP, 0, (LPCWSTR)&rTmp[0], n, pcStr, unUTF8Size,
+                            NULL, NULL);
 #else
     char *pin = (char *)pcUTF8;
     char *pout = pcStr;
@@ -498,8 +507,7 @@ public:
 
   // 取证书DN
 public:
-  static bool mycertname2string(X509_NAME *nm, char *pszDN)
-  {
+  static bool mycertname2string(X509_NAME *nm, char *pszDN) {
     if (nm == NULL)
       return false;
 
@@ -523,8 +531,7 @@ public:
     ASN1_STRING *data;
 
     memset(szOut, 0, sizeof(szOut));
-    for (int i = 0; i < num; i++)
-    {
+    for (int i = 0; i < num; i++) {
       memset(szName, 0, sizeof(szName));
       memset(szValue, 0, sizeof(szValue));
 
@@ -551,8 +558,7 @@ public:
       asnlen = ASN1_STRING_length(data);
       asntype = ASN1_STRING_type(data);
 
-      if (asntype == V_ASN1_BMPSTRING)
-      {
+      if (asntype == V_ASN1_BMPSTRING) {
         // 兼容linux
         /*			memset(asndata2, 0, sizeof(asndata2));
                                 for (int j = 0; j < asnlen / 2; j++)
@@ -561,12 +567,11 @@ public:
                                         asndata2[2 * j] = *asndata++;
                                 }
                                 strcpy(szValue, W2A((PWSTR)asndata2));
-        */			n = mybmpstr2str(asndata, asnlen, szValue);
+        */
+        n = mybmpstr2str(asndata, asnlen, szValue);
         if (n <= 0)
           return false;
-      }
-      else if (asntype == V_ASN1_UTF8STRING)
-      {
+      } else if (asntype == V_ASN1_UTF8STRING) {
         // 兼容linux
         /*			memset(wdata, 0, sizeof(wdata));
                                 int wdatalen = MultiByteToWideChar(
@@ -589,11 +594,11 @@ public:
                                         NULL);
                                 if (datalen <= 0)
                                         return false;
-        */			n = myutf8str2str(asndata, asnlen, szValue);
+        */
+        n = myutf8str2str(asndata, asnlen, szValue);
         if (n <= 0)
           return false;
-      }
-      else
+      } else
         memcpy(szValue, asndata, asnlen);
 
       if (i > 0)
@@ -610,32 +615,31 @@ public:
     return true;
   }
 
-
-  int GetPrecision(TS_TST_INFO *ts_tst_info, char *pucItemValue, int *puiItemValueLength)
-  {
+  int GetPrecision(TS_TST_INFO *ts_tst_info, char *pucItemValue,
+                   int *puiItemValueLength) {
     TS_ACCURACY *ac = TS_TST_INFO_get_accuracy(ts_tst_info);
-    if (ac == NULL)
-    {
+    if (ac == NULL) {
       return STF_TS_MALFORMAT;
     }
 
     ASN1_INTEGER *ans1_sec =
         const_cast<ASN1_INTEGER *>(TS_ACCURACY_get_seconds(ac));
     BIGNUM *bn_sec = ASN1_INTEGER_to_BN(ans1_sec, NULL);
-    char* secBuf = BN_bn2dec(bn_sec);
+    char *secBuf = BN_bn2dec(bn_sec);
 
     ASN1_INTEGER *ans1_millis =
         const_cast<ASN1_INTEGER *>(TS_ACCURACY_get_millis(ac));
     BIGNUM *bn_millis = ASN1_INTEGER_to_BN(ans1_millis, NULL);
-    char* secMillis = BN_bn2dec(bn_millis);
+    char *secMillis = BN_bn2dec(bn_millis);
 
     ASN1_INTEGER *ans1_micros =
         const_cast<ASN1_INTEGER *>(TS_ACCURACY_get_micros(ac));
     BIGNUM *bn_micros = ASN1_INTEGER_to_BN(ans1_micros, NULL);
-    char* secMicros = BN_bn2dec(bn_micros);
+    char *secMicros = BN_bn2dec(bn_micros);
 
     char temp[64] = {0};
-    sprintf(temp, "secs:%s, millisecs:%s, microsecs:%s.", secBuf, secMillis, secMicros);
+    sprintf(temp, "secs:%s, millisecs:%s, microsecs:%s.", secBuf, secMillis,
+            secMicros);
     strcpy(pucItemValue, temp);
     *puiItemValueLength = strlen(pucItemValue);
     return STF_TS_OK;
@@ -719,4 +723,4 @@ public:
   }
 };
 
-}
+} // namespace ndsec::timetool

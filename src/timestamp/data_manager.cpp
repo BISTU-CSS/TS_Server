@@ -199,8 +199,8 @@ public:
 
     sql = "SELECT cert_file FROM Trusted_cert";
     sqlite3_get_table(db, sql, &azResult, &nrow, &ncolumn, &zErrMsg);
-    for(int i = 1;i <= atoi(num.c_str());i++){
-      if(azResult[i] == nullptr){
+    for (int i = 1; i <= atoi(num.c_str()); i++) {
+      if (azResult[i] == nullptr) {
         break;
       }
       std::string varname(azResult[i]);

@@ -57,7 +57,8 @@ public:
    *
    * @return
    */
-  virtual std::string get_tsa_info(const std::string &response,uint64_t response_length,uint32_t code) = 0;
+  virtual std::string get_tsa_info(const std::string &response,
+                                   uint64_t response_length, uint32_t code) = 0;
 
 public:
   static std::unique_ptr<TimeManager> make();

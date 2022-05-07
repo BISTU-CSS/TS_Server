@@ -1,10 +1,10 @@
 #include "grpc_cs/greeter_server.h"
 
+#include "common/exception.h"
 #include "data_manager.h"
 #include "ndsec_ts_error.h"
 #include "session_manager.h"
 #include "timestamp_manager.h"
-#include "common/exception.h"
 
 #include "openssl/ts.h"
 #include "timestamp/timestampUtil.hpp"
@@ -147,7 +147,7 @@ void CreateTSRequestCall::Proceed() {
         reply_.set_puctsrequest(request);
         reply_.set_puctsrequestlength(request.length());
         reply_.set_code(timestamp::GRPC_STF_TS_OK);
-      }catch (ndsec::common::Exception &e) {
+      } catch (ndsec::common::Exception &e) {
         reply_.set_code(timestamp::ResponseStatus(e.get_error_code()));
       }
     } else {
@@ -178,7 +178,7 @@ void CreateTSResponseCall::Proceed() {
         reply_.set_puitsresponse(package);
         reply_.set_puitsresponselength(package.length());
         reply_.set_code(timestamp::GRPC_STF_TS_OK);
-      }catch (ndsec::common::Exception &e) {
+      } catch (ndsec::common::Exception &e) {
         reply_.set_code(timestamp::ResponseStatus(e.get_error_code()));
       }
     } else {
@@ -203,16 +203,16 @@ void VerifyTSValidityCall::Proceed() {
     if (session_pool->is_session_exist(session_handle)) {
       // session存在
       try {
-        bool result= time_manager->verify_ts_info(
+        bool result = time_manager->verify_ts_info(
             request_.puctsresponse(), request_.uitsresponselength(),
             request_.uihashalgid(), request_.uisignaturealgid(),
             request_.puctscert(), request_.uitscertlength());
         if (result) {
           reply_.set_code(timestamp::GRPC_STF_TS_OK);
         } else {
-          reply_.set_code(timestamp::GRPC_STF_TS_INVALID_SIGNATURE);      //签名无效
+          reply_.set_code(timestamp::GRPC_STF_TS_INVALID_SIGNATURE); //签名无效
         }
-      }catch (ndsec::common::Exception &e){
+      } catch (ndsec::common::Exception &e) {
         reply_.set_code(timestamp::ResponseStatus(e.get_error_code()));
       }
     } else {
@@ -235,14 +235,18 @@ void GetTSInfoCall::Proceed() {
     uint64_t session_handle = request_.handle().session_id();
     if (session_pool->is_session_exist(session_handle)) {
       // session存在
-      try{
-        std::string name = time_manager->get_tsa_info(request_.puctsresponse(),request_.uitsresponselength(),STF_CN_OF_TSSIGNER);
-        std::string time = time_manager->get_tsa_info(request_.puctsresponse(),request_.uitsresponselength(),STF_TIME_OF_STAMP);
+      try {
+        std::string name = time_manager->get_tsa_info(
+            request_.puctsresponse(), request_.uitsresponselength(),
+            STF_CN_OF_TSSIGNER);
+        std::string time = time_manager->get_tsa_info(
+            request_.puctsresponse(), request_.uitsresponselength(),
+            STF_TIME_OF_STAMP);
         reply_.set_pucissuername(name);
         reply_.set_puiissuernamelength(name.length());
         reply_.set_puctime(time);
         reply_.set_puitimelength(time.length());
-      }catch (ndsec::common::Exception &e){
+      } catch (ndsec::common::Exception &e) {
         reply_.set_code(timestamp::ResponseStatus(e.get_error_code()));
       }
       reply_.set_code(timestamp::GRPC_STF_TS_OK);
@@ -266,12 +270,14 @@ void GetTSDetailCall::Proceed() {
     uint64_t session_handle = request_.handle().session_id();
     if (session_pool->is_session_exist(session_handle)) {
       // session存在
-      try{
-        std::string item = time_manager->get_tsa_info(request_.puctsresponse(),request_.uitsresponselength(),request_.uiitemnumber());
+      try {
+        std::string item = time_manager->get_tsa_info(
+            request_.puctsresponse(), request_.uitsresponselength(),
+            request_.uiitemnumber());
         reply_.set_puiitemvalue(item);
         reply_.set_puiitemvaluelength(item.length());
         reply_.set_code(timestamp::GRPC_STF_TS_OK);
-      }catch (ndsec::common::Exception &e){
+      } catch (ndsec::common::Exception &e) {
         reply_.set_code(timestamp::ResponseStatus(e.get_error_code()));
       }
     } else {
