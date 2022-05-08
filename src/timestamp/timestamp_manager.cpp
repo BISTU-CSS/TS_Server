@@ -13,6 +13,7 @@
 #include "openssl/sm3.h"
 #include "openssl/ts.h"
 #include <sys/time.h>
+#include <fmt/format.h>
 
 #include <glog/logging.h>
 #include <iostream>
@@ -157,32 +158,48 @@ public:
   }
 
   std::string get_tsa_info(const std::string &response,
-                           uint64_t response_length, uint32_t code) override {
+                           uint64_t response_length, uint32_t code, uint64_t *result_length) override {
     //固定
+    std::string result;
     if(code == STF_SOURCE_OF_TIME){   //时间源的来源
-      return "LOCAL";
+      result = "LOCAL";
+      *result_length = result.length();
+      return result;
     } else if(code == STF_RESPONSE_TYPE){ //响应方式
-      return "HTTP";
+      result = "HTTP";
+      *result_length = result.length();
+      return result;
     }
     // 非固定
-    char source_szDNname[256] = {0};
+    bool have_cert = true;
     TS_RESP *ts_resp = nullptr;
     ts_resp = TS_RESP_new();
+
     const auto *t = reinterpret_cast<const unsigned char *>(response.data());
     d2i_TS_RESP(&ts_resp, &t, response_length);
     if (ts_resp == nullptr) {
       throw common::Exception(STF_TS_INVALID_DATAFORMAT); //错误的数据格式
     }
-    std::string result;
-    bool have_cert = true;
+    //先判断是否是存在证书的情况
+    STACK_OF(X509) *stack = sk_X509_new_null();
+    auto signers = PKCS7_get0_signers(TS_RESP_get_token(ts_resp), stack, 0);
+    X509 *cert = sk_X509_value(signers, 0);
+    if(cert == nullptr){
+      have_cert = false;
+    }
+
     switch (code) {
     //----------信息提取------------
     case STF_ORIGINAL_DATA: { //时间戳请求的原始信息
-
+      auto msg_imp = TS_MSG_IMPRINT_get_msg(TS_TST_INFO_get_msg_imprint(TS_RESP_get_tst_info(ts_resp)));
+      std::string cert_der_out((char *)ASN1_STRING_get0_data(msg_imp), ASN1_STRING_length(msg_imp));
+      result = cert_der_out;
+      *result_length = ASN1_STRING_length(msg_imp);
     } break;
     //----------时间提取------------
     case STF_TIME_PRECISION: { //时间精度
-      timestamp_util::get_precision(TS_RESP_get_tst_info(ts_resp));
+      result = timestamp_util::get_precision(TS_RESP_get_tst_info(ts_resp));
+      *result_length = result.length();
     } break;
     case STF_TIME_OF_STAMP: { //签发时间
       BIO *time_bio = BIO_new(BIO_s_mem());
@@ -191,17 +208,32 @@ public:
       char time_buffer[50] = {0};
       BIO_read(time_bio, time_buffer, 50);
       result = std::string(time_buffer);
+      *result_length = result.length();
       BIO_free(time_bio);
     } break;
     //----------证书提取------------
-    //先判断是否是存在证书的情况
-    have_cert = false;
-
     case STF_CERT_OF_TSSERVER: { //时间戳服务器的证书
       if(have_cert){
         //返回证书
+        unsigned char cert_buffer[2500];
+        unsigned char *p = cert_buffer;
+        //std::cout<<ASN1_INTEGER_get(X509_get_serialNumber(cert))<<std::endl;
+        uint64_t cert_len = i2d_X509(cert, &p);
+        //std::cout<<cert_len<<std::endl;
+        std::string cert_der_out((char *)cert_buffer, cert_len);
+        result = cert_der_out;
+        *result_length = cert_len;
+        if(result.length() != cert_len){
+          throw common::Exception(STF_TS_SYSTEM_FAILURE);
+        }
+//        BIO *cert_bio = BIO_new_mem_buf(cert_der_out.data(), cert_len);
+//        X509 *dd = d2i_X509_bio(cert_bio, nullptr);
+//        std::cout<<ASN1_INTEGER_get(X509_get_serialNumber(dd))<<std::endl;
       }else{
         //返回证书编号
+        auto c = PKCS7_get_signer_info(TS_RESP_get_token(ts_resp));
+        result = fmt::format("{}",ASN1_INTEGER_get(sk_PKCS7_SIGNER_INFO_pop(c)->issuer_and_serial->serial));
+        *result_length = result.length();
       }
     } break;
     case STF_CERTCHAIN_OF_TSSERVER: { //时间戳服务器的证书链
@@ -212,6 +244,44 @@ public:
       }
     } break;
 
+
+    //均为存在证书的情况
+    case STF_CN_OF_TSSIGNER: { //签发者的通用名
+        //存在证书，提取
+        GENERAL_NAME *name = TS_TST_INFO_get_tsa(TS_RESP_get_tst_info(ts_resp));
+        timestamp_util::Cert_info cert = timestamp_util::mycertname2string(name->d.directoryName);
+        cert.OU;
+        //TS_RESP_get_tst_info(ts_resp).TS_TST_INFO_get
+
+    } break;
+    case STF_SUBJECT_COUNTRY_OF_TSSIGNER: { //签发者国家
+      if(have_cert){
+        //存在证书，提取
+        GENERAL_NAME *name = TS_TST_INFO_get_tsa(TS_RESP_get_tst_info(ts_resp));
+        timestamp_util::mycertname2string(name->d.directoryName);
+      }else{
+        throw common::Exception(STF_TS_MALFORMAT);    //时间戳格式错误 -- 不包含证书，无法提取
+      }
+    } break;
+    case STF_SUBJECT_ORGNIZATION_OF_TSSIGNER: { //签发者组织
+      if(have_cert){
+        //存在证书，提取
+        GENERAL_NAME *name = TS_TST_INFO_get_tsa(TS_RESP_get_tst_info(ts_resp));
+        timestamp_util::mycertname2string(name->d.directoryName);
+      }else{
+        throw common::Exception(STF_TS_MALFORMAT);    //时间戳格式错误 -- 不包含证书，无法提取
+      }
+    } break;
+    case STF_SUBJECT_CITY_OF_TSSIGNER: { //签发者城市
+      if(have_cert){
+        //存在证书，提取
+        GENERAL_NAME *name = TS_TST_INFO_get_tsa(TS_RESP_get_tst_info(ts_resp));
+        timestamp_util::mycertname2string(name->d.directoryName);
+      }else{
+        throw common::Exception(STF_TS_MALFORMAT);    //时间戳格式错误 -- 不包含证书，无法提取
+      }
+    } break;
+    case STF_SUBJECT_EMAIL_OF_TSSIGNER: { //签发者联系用电子信箱
       if(have_cert){
         //存在证书，提取
         GENERAL_NAME *name = TS_TST_INFO_get_tsa(TS_RESP_get_tst_info(ts_resp));
@@ -219,22 +289,9 @@ public:
       }else{
         throw common::Exception(STF_TS_MALFORMAT);    //时间戳格式错误 -- 不包含证书，无法提取
       }
-    //均为存在证书的情况
-    case STF_CN_OF_TSSIGNER: { //签发者的通用名
-
     } break;
-    case STF_SUBJECT_COUNTRY_OF_TSSIGNER: { //签发者国家
-
-    } break;
-    case STF_SUBJECT_ORGNIZATION_OF_TSSIGNER: { //签发者组织
-
-    } break;
-    case STF_SUBJECT_CITY_OF_TSSIGNER: { //签发者城市
-
-    } break;
-    case STF_SUBJECT_EMAIL_OF_TSSIGNER: { //签发者联系用电子信箱
-
-    } break;
+    default:
+      throw common::Exception(STF_TS_INVALID_ITEM);  //输人项目编号无效
     }
 
     return result;

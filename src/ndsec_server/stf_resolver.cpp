@@ -236,16 +236,18 @@ void GetTSInfoCall::Proceed() {
     if (session_pool->is_session_exist(session_handle)) {
       // session存在
       try {
+        uint64_t name_length;
+        uint64_t time_length;
         std::string name = time_manager->get_tsa_info(
             request_.puctsresponse(), request_.uitsresponselength(),
-            STF_CN_OF_TSSIGNER);
+            STF_CN_OF_TSSIGNER,&name_length);
         std::string time = time_manager->get_tsa_info(
             request_.puctsresponse(), request_.uitsresponselength(),
-            STF_TIME_OF_STAMP);
+            STF_TIME_OF_STAMP,&time_length);
         reply_.set_pucissuername(name);
-        reply_.set_puiissuernamelength(name.length());
+        reply_.set_puiissuernamelength(name_length);
         reply_.set_puctime(time);
-        reply_.set_puitimelength(time.length());
+        reply_.set_puitimelength(time_length);
       } catch (ndsec::common::Exception &e) {
         reply_.set_code(timestamp::ResponseStatus(e.get_error_code()));
       }
@@ -271,11 +273,12 @@ void GetTSDetailCall::Proceed() {
     if (session_pool->is_session_exist(session_handle)) {
       // session存在
       try {
+        uint64_t item_length;
         std::string item = time_manager->get_tsa_info(
             request_.puctsresponse(), request_.uitsresponselength(),
-            request_.uiitemnumber());
+            request_.uiitemnumber(),&item_length);
         reply_.set_puiitemvalue(item);
-        reply_.set_puiitemvaluelength(item.length());
+        reply_.set_puiitemvaluelength(item_length);
         reply_.set_code(timestamp::GRPC_STF_TS_OK);
       } catch (ndsec::common::Exception &e) {
         reply_.set_code(timestamp::ResponseStatus(e.get_error_code()));

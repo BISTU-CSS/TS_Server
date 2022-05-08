@@ -6,6 +6,8 @@
 #include <iconv.h>
 #include <vector>
 
+#include <iostream>
+
 #define UNUSED __attribute__((unused))
 const char kBase64Alphabet[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
                                "abcdefghijklmnopqrstuvwxyz"
@@ -505,15 +507,30 @@ public:
     return n;
   }
 
+public:
+  class Cert_info{
+  public:
+    Cert_info() {}
+  public:
+  std::string CN;
+  std::string C;
+  std::string O;
+  std::string OU;
+  std::string L;
+  std::string ST;
+  std::string E;
+};
+
   // 取证书DN
 public:
-  static bool mycertname2string(X509_NAME *nm, char *pszDN) {
+  static Cert_info mycertname2string(X509_NAME *nm) {
+    Cert_info certInfo{};
     if (nm == NULL)
-      return false;
+      throw common::Exception(STF_TS_MALFORMAT);
 
     int num = X509_NAME_entry_count(nm);
     if (num <= 0)
-      return false;
+      throw common::Exception(STF_TS_MALFORMAT);
 
     // 兼容linux
     //    	USES_CONVERSION;
@@ -546,6 +563,7 @@ public:
       else
         strcpy(szName, OBJ_nid2sn(fn_nid));
 
+
       if (strcmp(szName, "ST") == 0)
         strcpy(szName, "S");
       else if (strcmp(szName, "GN") == 0)
@@ -570,7 +588,7 @@ public:
         */
         n = mybmpstr2str(asndata, asnlen, szValue);
         if (n <= 0)
-          return false;
+          throw common::Exception(STF_TS_MALFORMAT);
       } else if (asntype == V_ASN1_UTF8STRING) {
         // 兼容linux
         /*			memset(wdata, 0, sizeof(wdata));
@@ -597,22 +615,29 @@ public:
         */
         n = myutf8str2str(asndata, asnlen, szValue);
         if (n <= 0)
-          return false;
+          throw common::Exception(STF_TS_MALFORMAT);
       } else
         memcpy(szValue, asndata, asnlen);
 
-      if (i > 0)
-        strcat(szOut, SGD_STR_SEPARATOR);
-      strcat(szOut, szName);
-      strcat(szOut, "=");
-      strcat(szOut, szValue);
+      if(strcmp(szName,"CN") == 0){
+        certInfo.CN = std::string(szValue);
+      }else if(strcmp(szName,"OU")){
+        certInfo.OU = std::string(szValue);
+      }else if(strcmp(szName,"C")){
+        certInfo.C = std::string(szValue);
+      }else if(strcmp(szName,"O")){
+        certInfo.O = std::string(szValue);
+      }else if(strcmp(szName,"OU")){
+        certInfo.OU = std::string(szValue);
+      }else if(strcmp(szName,"L")){
+        certInfo.L = std::string(szValue);
+      }else if(strcmp(szName,"S")){
+        certInfo.ST = std::string(szValue);
+      }else if(strcmp(szName,"E")){
+        certInfo.E = std::string(szValue);
+      }
     }
-
-    if (strlen(szOut) == 0)
-      return false;
-    strcpy(pszDN, szOut);
-
-    return true;
+    return certInfo;
   }
 
   static std::string get_precision(TS_TST_INFO *ts_tst_info) {
@@ -620,23 +645,42 @@ public:
     if (ac == nullptr) {
       throw common::Exception(STF_TS_MALFORMAT);
     }
+
+    UNUSED auto a = TS_ACCURACY_get_seconds(ac);
+    ASN1_INTEGER *zero = ASN1_INTEGER_new();
+    ASN1_INTEGER_set(zero,0);
+    BIGNUM *bignum_zero = ASN1_INTEGER_to_BN(zero, nullptr);
+
+    char *secBuf = BN_bn2dec(bignum_zero);
+    char *secMillis = BN_bn2dec(bignum_zero);
+    char *secMicros = BN_bn2dec(bignum_zero);
+
     ASN1_INTEGER *ans1_sec =
         const_cast<ASN1_INTEGER *>(TS_ACCURACY_get_seconds(ac));
-    BIGNUM *bn_sec = ASN1_INTEGER_to_BN(ans1_sec, nullptr);
-    char *secBuf = BN_bn2dec(bn_sec);
+
+    if(ans1_sec != nullptr){
+      BIGNUM *bn_sec = ASN1_INTEGER_to_BN(ans1_sec, nullptr);
+      secBuf = BN_bn2dec(bn_sec);
+    }
 
     ASN1_INTEGER *ans1_millis =
         const_cast<ASN1_INTEGER *>(TS_ACCURACY_get_millis(ac));
-    BIGNUM *bn_millis = ASN1_INTEGER_to_BN(ans1_millis, NULL);
-    char *secMillis = BN_bn2dec(bn_millis);
+
+    if(ans1_millis != nullptr){
+      BIGNUM *bn_millis = ASN1_INTEGER_to_BN(ans1_millis, NULL);
+      secMillis = BN_bn2dec(bn_millis);
+    }
 
     ASN1_INTEGER *ans1_micros =
         const_cast<ASN1_INTEGER *>(TS_ACCURACY_get_micros(ac));
-    BIGNUM *bn_micros = ASN1_INTEGER_to_BN(ans1_micros, nullptr);
-    char *secMicros = BN_bn2dec(bn_micros);
+
+    if(ans1_micros != nullptr){
+      BIGNUM *bn_micros = ASN1_INTEGER_to_BN(ans1_micros, nullptr);
+      secMicros = BN_bn2dec(bn_micros);
+    }
 
     char temp[64] = {0};
-    sprintf(temp, "secs:%s, millisecs:%s, microsecs:%s.", secBuf, secMillis,
+    sprintf(temp, "secs:%s, millis:%s, micros:%s.", secBuf, secMillis,
             secMicros);
     return std::string(temp);
   }
