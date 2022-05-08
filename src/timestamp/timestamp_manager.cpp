@@ -244,21 +244,29 @@ public:
       }
     } break;
 
-
     //均为存在证书的情况
     case STF_CN_OF_TSSIGNER: { //签发者的通用名
         //存在证书，提取
         GENERAL_NAME *name = TS_TST_INFO_get_tsa(TS_RESP_get_tst_info(ts_resp));
-        timestamp_util::Cert_info cert = timestamp_util::mycertname2string(name->d.directoryName);
-        cert.OU;
-        //TS_RESP_get_tst_info(ts_resp).TS_TST_INFO_get
-
+        timestamp_util::Cert_info cert_info = timestamp_util::mycertname2string(name->d.directoryName);
+        if(!cert_info.CN.empty()){
+          result = cert_info.CN;
+          *result_length = result.length();
+        }else{
+          throw common::Exception(STF_TS_MALFORMAT);
+        }
     } break;
     case STF_SUBJECT_COUNTRY_OF_TSSIGNER: { //签发者国家
       if(have_cert){
         //存在证书，提取
         GENERAL_NAME *name = TS_TST_INFO_get_tsa(TS_RESP_get_tst_info(ts_resp));
-        timestamp_util::mycertname2string(name->d.directoryName);
+        timestamp_util::Cert_info cert_info = timestamp_util::mycertname2string(name->d.directoryName);
+        if(!cert_info.C.empty()){
+          result = cert_info.C;
+          *result_length = result.length();
+        }else{
+          throw common::Exception(STF_TS_MALFORMAT);
+        }
       }else{
         throw common::Exception(STF_TS_MALFORMAT);    //时间戳格式错误 -- 不包含证书，无法提取
       }
@@ -267,7 +275,13 @@ public:
       if(have_cert){
         //存在证书，提取
         GENERAL_NAME *name = TS_TST_INFO_get_tsa(TS_RESP_get_tst_info(ts_resp));
-        timestamp_util::mycertname2string(name->d.directoryName);
+        timestamp_util::Cert_info cert_info = timestamp_util::mycertname2string(name->d.directoryName);
+        if(!cert_info.O.empty()){
+          result = cert_info.O;
+          *result_length = result.length();
+        }else{
+          throw common::Exception(STF_TS_MALFORMAT);
+        }
       }else{
         throw common::Exception(STF_TS_MALFORMAT);    //时间戳格式错误 -- 不包含证书，无法提取
       }
@@ -276,7 +290,13 @@ public:
       if(have_cert){
         //存在证书，提取
         GENERAL_NAME *name = TS_TST_INFO_get_tsa(TS_RESP_get_tst_info(ts_resp));
-        timestamp_util::mycertname2string(name->d.directoryName);
+        timestamp_util::Cert_info cert_info = timestamp_util::mycertname2string(name->d.directoryName);
+        if(!cert_info.L.empty()){
+          result = cert_info.L;
+          *result_length = result.length();
+        }else{
+          throw common::Exception(STF_TS_MALFORMAT);
+        }
       }else{
         throw common::Exception(STF_TS_MALFORMAT);    //时间戳格式错误 -- 不包含证书，无法提取
       }
@@ -285,7 +305,13 @@ public:
       if(have_cert){
         //存在证书，提取
         GENERAL_NAME *name = TS_TST_INFO_get_tsa(TS_RESP_get_tst_info(ts_resp));
-        timestamp_util::mycertname2string(name->d.directoryName, source_szDNname);
+        timestamp_util::Cert_info cert_info = timestamp_util::mycertname2string(name->d.directoryName);
+        if(!cert_info.E.empty()){
+          result = cert_info.E;
+          *result_length = result.length();
+        }else{
+          throw common::Exception(STF_TS_MALFORMAT);
+        }
       }else{
         throw common::Exception(STF_TS_MALFORMAT);    //时间戳格式错误 -- 不包含证书，无法提取
       }
@@ -628,12 +654,11 @@ private:
     }
     uint64_t nid = OBJ_obj2nid(p7->type);
     GENERAL_NAME *name = TS_TST_INFO_get_tsa(TS_RESP_get_tst_info(ts_resp));
-    char source_szDNname[256] = {0};
-    timestamp_util::mycertname2string(name->d.directoryName, source_szDNname);
-    char input_szDNname[256] = {0};
-    timestamp_util::mycertname2string(X509_get_subject_name(tsa_sign_cert),
-                                      input_szDNname);
-    if (strcmp(source_szDNname, input_szDNname) != 0) { // str1=str2: strcmp = 0
+
+    timestamp_util::Cert_info source_cert = timestamp_util::mycertname2string(name->d.directoryName);
+    timestamp_util::Cert_info input_cert = timestamp_util::mycertname2string(X509_get_subject_name(tsa_sign_cert));
+
+    if (!timestamp_util::compare_certinfo(source_cert, input_cert)) {
       return false;
     }
     if (nid == NID_pkcs7_signed) {

@@ -506,12 +506,8 @@ public:
     pcStr[n] = 0;
     return n;
   }
-
+class Cert_info{
 public:
-  class Cert_info{
-  public:
-    Cert_info() {}
-  public:
   std::string CN;
   std::string C;
   std::string O;
@@ -523,6 +519,18 @@ public:
 
   // 取证书DN
 public:
+  static bool compare_certinfo(Cert_info a,Cert_info b){
+    if(a.OU == b.OU)
+      if(a.CN == b.CN)
+        if(a.C == b.C)
+          if(a.E == b.E)
+            if(a.L == b.L)
+              if(a.O == b.O)
+                if(a.ST == b.ST)
+                  return true;
+    return false;
+  }
+
   static Cert_info mycertname2string(X509_NAME *nm) {
     Cert_info certInfo{};
     if (nm == NULL)
@@ -621,22 +629,23 @@ public:
 
       if(strcmp(szName,"CN") == 0){
         certInfo.CN = std::string(szValue);
-      }else if(strcmp(szName,"OU")){
+      }else if(strcmp(szName,"OU") == 0){
         certInfo.OU = std::string(szValue);
-      }else if(strcmp(szName,"C")){
+      }else if(strcmp(szName,"C") == 0){
         certInfo.C = std::string(szValue);
-      }else if(strcmp(szName,"O")){
+      }else if(strcmp(szName,"O") == 0){
         certInfo.O = std::string(szValue);
-      }else if(strcmp(szName,"OU")){
+      }else if(strcmp(szName,"OU") == 0){
         certInfo.OU = std::string(szValue);
-      }else if(strcmp(szName,"L")){
+      }else if(strcmp(szName,"L") == 0){
         certInfo.L = std::string(szValue);
-      }else if(strcmp(szName,"S")){
+      }else if(strcmp(szName,"S") == 0){
         certInfo.ST = std::string(szValue);
-      }else if(strcmp(szName,"E")){
+      }else if(strcmp(szName,"E") == 0){
         certInfo.E = std::string(szValue);
       }
     }
+
     return certInfo;
   }
 
