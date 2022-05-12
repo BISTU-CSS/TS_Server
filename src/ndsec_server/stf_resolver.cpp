@@ -210,7 +210,10 @@ void VerifyTSValidityCall::Proceed() {
         if (result) {
           reply_.set_code(timestamp::GRPC_STF_TS_OK);
         } else {
-          reply_.set_code(timestamp::GRPC_STF_TS_INVALID_SIGNATURE); //签名无效 STF_TS_INVALID_SIGNATURE
+          reply_.set_code(
+              timestamp::
+                  GRPC_STF_TS_INVALID_SIGNATURE); //签名无效
+                                                  //STF_TS_INVALID_SIGNATURE
         }
       } catch (ndsec::common::Exception &e) {
         reply_.set_code(timestamp::ResponseStatus(e.get_error_code()));
@@ -240,10 +243,10 @@ void GetTSInfoCall::Proceed() {
         uint64_t time_length;
         std::string name = time_manager->get_tsa_info(
             request_.puctsresponse(), request_.uitsresponselength(),
-            STF_CN_OF_TSSIGNER,&name_length);
+            STF_CN_OF_TSSIGNER, &name_length);
         std::string time = time_manager->get_tsa_info(
             request_.puctsresponse(), request_.uitsresponselength(),
-            STF_TIME_OF_STAMP,&time_length);
+            STF_TIME_OF_STAMP, &time_length);
         reply_.set_pucissuername(name);
         reply_.set_puiissuernamelength(name_length);
         reply_.set_puctime(time);
@@ -276,7 +279,7 @@ void GetTSDetailCall::Proceed() {
         uint64_t item_length;
         std::string item = time_manager->get_tsa_info(
             request_.puctsresponse(), request_.uitsresponselength(),
-            request_.uiitemnumber(),&item_length);
+            request_.uiitemnumber(), &item_length);
         reply_.set_puiitemvalue(item);
         reply_.set_puiitemvaluelength(item_length);
         reply_.set_code(timestamp::GRPC_STF_TS_OK);

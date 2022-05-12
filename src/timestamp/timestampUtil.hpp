@@ -429,37 +429,37 @@ public:
     return serial;
   }
 
-class Cert_info{
-public:
-  std::string CN;
-  std::string C;
-  std::string O;
-  std::string OU;
-  std::string L;
-  std::string ST;
-  std::string E;
-};
+  class Cert_info {
+  public:
+    std::string CN;
+    std::string C;
+    std::string O;
+    std::string OU;
+    std::string L;
+    std::string ST;
+    std::string E;
+  };
 
 public:
-  static bool compare_certinfo(Cert_info a,Cert_info b){
-    if(a.OU == b.OU)
-      if(a.CN == b.CN)
-        if(a.C == b.C)
-          if(a.E == b.E)
-            if(a.L == b.L)
-              if(a.O == b.O)
-                if(a.ST == b.ST)
+  static bool compare_certinfo(Cert_info a, Cert_info b) {
+    if (a.OU == b.OU)
+      if (a.CN == b.CN)
+        if (a.C == b.C)
+          if (a.E == b.E)
+            if (a.L == b.L)
+              if (a.O == b.O)
+                if (a.ST == b.ST)
                   return true;
     return false;
   }
 
   static Cert_info analysis_cert(X509_NAME *nm) {
     Cert_info certInfo{};
-    if (nm == nullptr){
+    if (nm == nullptr) {
       throw common::Exception(STF_TS_MALFORMAT);
     }
     uint16_t num = X509_NAME_entry_count(nm);
-    if (num <= 0){
+    if (num <= 0) {
       throw common::Exception(STF_TS_MALFORMAT);
     }
 
@@ -467,7 +467,7 @@ public:
     ASN1_OBJECT *obj;
     ASN1_STRING *data;
     uint64_t fn_nid;
-    for(uint16_t i = 0; i <num; i++){
+    for (uint16_t i = 0; i < num; i++) {
       X509_NAME_ENTRY *entry;
       memset(szName, 0, sizeof(szName));
       memset(szValue, 0, sizeof(szValue));
@@ -486,26 +486,26 @@ public:
       else if (strcmp(szName, "emailAddress") == 0)
         strcpy(szName, "E");
       uint64_t asnlen;
-      char * asndata = (char *)ASN1_STRING_get0_data(data);
+      char *asndata = (char *)ASN1_STRING_get0_data(data);
       asnlen = ASN1_STRING_length(data);
-//      asntype = ASN1_STRING_type(data);
+      //      asntype = ASN1_STRING_type(data);
       memcpy(szValue, asndata, asnlen);
 
-      if(strcmp(szName,"CN") == 0){
+      if (strcmp(szName, "CN") == 0) {
         certInfo.CN = std::string(szValue);
-      }else if(strcmp(szName,"OU") == 0){
+      } else if (strcmp(szName, "OU") == 0) {
         certInfo.OU = std::string(szValue);
-      }else if(strcmp(szName,"C") == 0){
+      } else if (strcmp(szName, "C") == 0) {
         certInfo.C = std::string(szValue);
-      }else if(strcmp(szName,"O") == 0){
+      } else if (strcmp(szName, "O") == 0) {
         certInfo.O = std::string(szValue);
-      }else if(strcmp(szName,"OU") == 0){
+      } else if (strcmp(szName, "OU") == 0) {
         certInfo.OU = std::string(szValue);
-      }else if(strcmp(szName,"L") == 0){
+      } else if (strcmp(szName, "L") == 0) {
         certInfo.L = std::string(szValue);
-      }else if(strcmp(szName,"S") == 0){
+      } else if (strcmp(szName, "S") == 0) {
         certInfo.ST = std::string(szValue);
-      }else if(strcmp(szName,"E") == 0){
+      } else if (strcmp(szName, "E") == 0) {
         certInfo.E = std::string(szValue);
       }
     }
@@ -521,7 +521,7 @@ public:
 
     UNUSED auto a = TS_ACCURACY_get_seconds(ac);
     ASN1_INTEGER *zero = ASN1_INTEGER_new();
-    ASN1_INTEGER_set(zero,0);
+    ASN1_INTEGER_set(zero, 0);
     BIGNUM *bignum_zero = ASN1_INTEGER_to_BN(zero, nullptr);
 
     char *secBuf = BN_bn2dec(bignum_zero);
@@ -531,7 +531,7 @@ public:
     ASN1_INTEGER *ans1_sec =
         const_cast<ASN1_INTEGER *>(TS_ACCURACY_get_seconds(ac));
 
-    if(ans1_sec != nullptr){
+    if (ans1_sec != nullptr) {
       BIGNUM *bn_sec = ASN1_INTEGER_to_BN(ans1_sec, nullptr);
       secBuf = BN_bn2dec(bn_sec);
     }
@@ -539,7 +539,7 @@ public:
     ASN1_INTEGER *ans1_millis =
         const_cast<ASN1_INTEGER *>(TS_ACCURACY_get_millis(ac));
 
-    if(ans1_millis != nullptr){
+    if (ans1_millis != nullptr) {
       BIGNUM *bn_millis = ASN1_INTEGER_to_BN(ans1_millis, NULL);
       secMillis = BN_bn2dec(bn_millis);
     }
@@ -547,7 +547,7 @@ public:
     ASN1_INTEGER *ans1_micros =
         const_cast<ASN1_INTEGER *>(TS_ACCURACY_get_micros(ac));
 
-    if(ans1_micros != nullptr){
+    if (ans1_micros != nullptr) {
       BIGNUM *bn_micros = ASN1_INTEGER_to_BN(ans1_micros, nullptr);
       secMicros = BN_bn2dec(bn_micros);
     }
