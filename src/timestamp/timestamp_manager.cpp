@@ -74,6 +74,7 @@ public:
   std::string build_ts_response(const std::string &user_ip, uint32_t sign_id,
                                 const std::string &request,
                                 uint64_t request_length) override {
+    std::cout<<"get"<<std::endl;
     //判断sign id是否与default的相同
     judge_nid(sign_id, tsa_signature_nid_);
     //判断ts request的正确性
@@ -248,7 +249,7 @@ public:
     case STF_CN_OF_TSSIGNER: { //签发者的通用名
         //存在证书，提取
         GENERAL_NAME *name = TS_TST_INFO_get_tsa(TS_RESP_get_tst_info(ts_resp));
-        timestamp_util::Cert_info cert_info = timestamp_util::mycertname2string(name->d.directoryName);
+        timestamp_util::Cert_info cert_info = timestamp_util::analysis_cert(name->d.directoryName);
         if(!cert_info.CN.empty()){
           result = cert_info.CN;
           *result_length = result.length();
@@ -260,7 +261,7 @@ public:
       if(have_cert){
         //存在证书，提取
         GENERAL_NAME *name = TS_TST_INFO_get_tsa(TS_RESP_get_tst_info(ts_resp));
-        timestamp_util::Cert_info cert_info = timestamp_util::mycertname2string(name->d.directoryName);
+        timestamp_util::Cert_info cert_info = timestamp_util::analysis_cert(name->d.directoryName);
         if(!cert_info.C.empty()){
           result = cert_info.C;
           *result_length = result.length();
@@ -275,7 +276,7 @@ public:
       if(have_cert){
         //存在证书，提取
         GENERAL_NAME *name = TS_TST_INFO_get_tsa(TS_RESP_get_tst_info(ts_resp));
-        timestamp_util::Cert_info cert_info = timestamp_util::mycertname2string(name->d.directoryName);
+        timestamp_util::Cert_info cert_info = timestamp_util::analysis_cert(name->d.directoryName);
         if(!cert_info.O.empty()){
           result = cert_info.O;
           *result_length = result.length();
@@ -290,7 +291,7 @@ public:
       if(have_cert){
         //存在证书，提取
         GENERAL_NAME *name = TS_TST_INFO_get_tsa(TS_RESP_get_tst_info(ts_resp));
-        timestamp_util::Cert_info cert_info = timestamp_util::mycertname2string(name->d.directoryName);
+        timestamp_util::Cert_info cert_info = timestamp_util::analysis_cert(name->d.directoryName);
         if(!cert_info.L.empty()){
           result = cert_info.L;
           *result_length = result.length();
@@ -305,7 +306,7 @@ public:
       if(have_cert){
         //存在证书，提取
         GENERAL_NAME *name = TS_TST_INFO_get_tsa(TS_RESP_get_tst_info(ts_resp));
-        timestamp_util::Cert_info cert_info = timestamp_util::mycertname2string(name->d.directoryName);
+        timestamp_util::Cert_info cert_info = timestamp_util::analysis_cert(name->d.directoryName);
         if(!cert_info.E.empty()){
           result = cert_info.E;
           *result_length = result.length();
@@ -655,8 +656,8 @@ private:
     uint64_t nid = OBJ_obj2nid(p7->type);
     GENERAL_NAME *name = TS_TST_INFO_get_tsa(TS_RESP_get_tst_info(ts_resp));
 
-    timestamp_util::Cert_info source_cert = timestamp_util::mycertname2string(name->d.directoryName);
-    timestamp_util::Cert_info input_cert = timestamp_util::mycertname2string(X509_get_subject_name(tsa_sign_cert));
+    timestamp_util::Cert_info source_cert = timestamp_util::analysis_cert(name->d.directoryName);
+    timestamp_util::Cert_info input_cert = timestamp_util::analysis_cert(X509_get_subject_name(tsa_sign_cert));
 
     if (!timestamp_util::compare_certinfo(source_cert, input_cert)) {
       return false;

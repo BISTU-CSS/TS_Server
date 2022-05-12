@@ -415,6 +415,7 @@ public:
     BIO_free(out);
     return nRet;
   }
+
   static ASN1_INTEGER *tsa_serial_cb(TS_RESP_CTX *ctx, UNUSED void *data) {
     ASN1_INTEGER *serial = next_serial(SERIAL_FILE);
     if (!serial) {
@@ -428,84 +429,6 @@ public:
     return serial;
   }
 
-  static int mybmpstr2str(const char *pcBMP, unsigned int unBMPSize,
-                          char *pcStr, bool bBigEndian = true) {
-    std::vector<char> rBMP(pcBMP, pcBMP + unBMPSize);
-
-    // android(2012-08-06)
-    //#if !defined(KT_BIG_ENDIAN) //&& defined(_WIN32)
-    if (bBigEndian) {
-      int nHalfSize = unBMPSize / 2;
-      for (int i = 0; i < nHalfSize; i++) {
-        rBMP[2 * i + 1] = *pcBMP++;
-        rBMP[2 * i] = *pcBMP++;
-      }
-    }
-    //#endif
-
-#ifdef _WIN32
-    int n = WideCharToMultiByte(CP_ACP, 0, (LPCWSTR)&rBMP[0], unBMPSize / 2,
-                                pcStr, unBMPSize, NULL, NULL);
-#else
-    std::vector<char> rTmp(unBMPSize + 2);
-    rTmp[0] = 0xFF;
-    rTmp[1] = 0xFE;
-    memcpy(&rTmp[2], &rBMP[0], unBMPSize);
-
-    char *pin = (char *)&rTmp[0];
-    char *pout = pcStr;
-    size_t inlen = unBMPSize + 2;
-    size_t outlen = unBMPSize;
-#ifdef KT_IOS
-    iconv_t cd = iconv_open("GB18030", "UCS-2");
-#else
-    iconv_t cd = iconv_open("GB18030", "UNICODE");
-#endif
-    if (cd == NULL)
-      return -1;
-
-    int nRet = iconv(cd, &pin, &inlen, &pout, &outlen);
-    iconv_close(cd);
-    if (nRet == -1)
-      return -2;
-    int n = unBMPSize - outlen;
-#endif
-
-    pcStr[n] = 0;
-    return n;
-  }
-
-  static int myutf8str2str(const char *pcUTF8, unsigned int unUTF8Size,
-                           char *pcStr) {
-#ifdef _WIN32
-    CharArray rTmp(unUTF8Size * 2);
-    int n = MultiByteToWideChar(CP_UTF8, 0, pcUTF8, unUTF8Size,
-                                (LPWSTR)&rTmp[0], rTmp.size() / 2);
-    n = WideCharToMultiByte(CP_ACP, 0, (LPCWSTR)&rTmp[0], n, pcStr, unUTF8Size,
-                            NULL, NULL);
-#else
-    char *pin = (char *)pcUTF8;
-    char *pout = pcStr;
-    size_t inlen = unUTF8Size;
-    size_t outlen = unUTF8Size;
-#ifdef KT_IOS
-    iconv_t cd = iconv_open("GB18030", "UTF-8");
-#else
-    iconv_t cd = iconv_open("GB18030", "UTF-8");
-#endif
-    if (cd == NULL)
-      return -1;
-
-    int nRet = iconv(cd, &pin, &inlen, &pout, &outlen);
-    iconv_close(cd);
-    if (nRet == -1)
-      return -2;
-    int n = unUTF8Size - outlen;
-#endif
-
-    pcStr[n] = 0;
-    return n;
-  }
 class Cert_info{
 public:
   std::string CN;
@@ -517,7 +440,6 @@ public:
   std::string E;
 };
 
-  // 取证书DN
 public:
   static bool compare_certinfo(Cert_info a,Cert_info b){
     if(a.OU == b.OU)
@@ -531,101 +453,43 @@ public:
     return false;
   }
 
-  static Cert_info mycertname2string(X509_NAME *nm) {
+  static Cert_info analysis_cert(X509_NAME *nm) {
     Cert_info certInfo{};
-    if (nm == NULL)
+    if (nm == nullptr){
       throw common::Exception(STF_TS_MALFORMAT);
-
-    int num = X509_NAME_entry_count(nm);
-    if (num <= 0)
+    }
+    uint16_t num = X509_NAME_entry_count(nm);
+    if (num <= 0){
       throw common::Exception(STF_TS_MALFORMAT);
+    }
 
-    // 兼容linux
-    //    	USES_CONVERSION;
-    //    	setlocale(LC_CTYPE, "");
-    //    	char asndata2[1024];
-    //    	wchar_t wdata[1024];
-    int n;
-
-    int fn_nid, asnlen, asntype;
-    char szOut[1024];
     char szName[1024], szValue[1024];
-    char *asndata;
-    X509_NAME_ENTRY *entry;
     ASN1_OBJECT *obj;
     ASN1_STRING *data;
-
-    memset(szOut, 0, sizeof(szOut));
-    for (int i = 0; i < num; i++) {
+    uint64_t fn_nid;
+    for(uint16_t i = 0; i <num; i++){
+      X509_NAME_ENTRY *entry;
       memset(szName, 0, sizeof(szName));
       memset(szValue, 0, sizeof(szValue));
-
       entry = (X509_NAME_ENTRY *)X509_NAME_get_entry(nm, i);
       obj = X509_NAME_ENTRY_get_object(entry);
       data = X509_NAME_ENTRY_get_data(entry);
-
-      // 数据类型
       fn_nid = OBJ_obj2nid(obj);
       if (fn_nid == NID_undef)
         OBJ_obj2txt(szName, sizeof(szName), obj, 1);
       else
         strcpy(szName, OBJ_nid2sn(fn_nid));
-
-
       if (strcmp(szName, "ST") == 0)
         strcpy(szName, "S");
       else if (strcmp(szName, "GN") == 0)
         strcpy(szName, "G");
       else if (strcmp(szName, "emailAddress") == 0)
         strcpy(szName, "E");
-
-      // 数据值
-      asndata = (char *)ASN1_STRING_get0_data(data);
+      uint64_t asnlen;
+      char * asndata = (char *)ASN1_STRING_get0_data(data);
       asnlen = ASN1_STRING_length(data);
-      asntype = ASN1_STRING_type(data);
-
-      if (asntype == V_ASN1_BMPSTRING) {
-        // 兼容linux
-        /*			memset(asndata2, 0, sizeof(asndata2));
-                                for (int j = 0; j < asnlen / 2; j++)
-                                {
-                                        asndata2[2 * j + 1] = *asndata++;
-                                        asndata2[2 * j] = *asndata++;
-                                }
-                                strcpy(szValue, W2A((PWSTR)asndata2));
-        */
-        n = mybmpstr2str(asndata, asnlen, szValue);
-        if (n <= 0)
-          throw common::Exception(STF_TS_MALFORMAT);
-      } else if (asntype == V_ASN1_UTF8STRING) {
-        // 兼容linux
-        /*			memset(wdata, 0, sizeof(wdata));
-                                int wdatalen = MultiByteToWideChar(
-                                        CP_UTF8,
-                                        0,
-                                        asndata,
-                                        asnlen,
-                                        wdata,
-                                        1024);
-                                if (wdatalen <= 0)
-                                        return false;
-                                int datalen = WideCharToMultiByte(
-                                        CP_ACP,
-                                        0,
-                                        wdata,
-                                        wdatalen,
-                                        szValue,
-                                        1024,
-                                        NULL,
-                                        NULL);
-                                if (datalen <= 0)
-                                        return false;
-        */
-        n = myutf8str2str(asndata, asnlen, szValue);
-        if (n <= 0)
-          throw common::Exception(STF_TS_MALFORMAT);
-      } else
-        memcpy(szValue, asndata, asnlen);
+//      asntype = ASN1_STRING_type(data);
+      memcpy(szValue, asndata, asnlen);
 
       if(strcmp(szName,"CN") == 0){
         certInfo.CN = std::string(szValue);
