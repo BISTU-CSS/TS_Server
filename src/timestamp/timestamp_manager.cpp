@@ -74,7 +74,6 @@ public:
   std::string build_ts_response(const std::string &user_ip, uint32_t sign_id,
                                 const std::string &request,
                                 uint64_t request_length) override {
-    std::cout<<"get"<<std::endl;
     //判断sign id是否与default的相同
     judge_nid(sign_id, tsa_signature_nid_);
     //判断ts request的正确性
